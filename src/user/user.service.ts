@@ -68,8 +68,10 @@ export class UserService {
 
   async update(id: string, userDto: UpdateUserDto): Promise<UserEntity> {
     const user = await this.userRepo.findOneBy({ id });
+    if (!user) throw new Error('User not found');
 
     Object.assign(user, userDto);
+
     if (userDto.password) {
       user.password = await bcrypt.hash(userDto.password, 0);
     }
