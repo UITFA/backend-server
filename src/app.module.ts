@@ -18,24 +18,32 @@ import { ProgramModule } from './program/program.module';
 import { SemesterModule } from './semester/semester.module';
 import { SubjectModule } from './subject/subject.module';
 import { UserModule } from './user/user.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      envFilePath: ['.env'],
+    }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), '/schema.gql'),
       sortSchema: true,
       playground: true,
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'db',
-      port: 5432,
-      username: 'postgres',
-      password: 'jnhbgvfc',
-      database: 'aqa',
-      synchronize: true,
-      autoLoadEntities: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        synchronize: true,
+        autoLoadEntities: true,
+      }),
     }),
     PermissionModule,
     UserModule,
