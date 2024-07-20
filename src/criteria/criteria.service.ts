@@ -31,6 +31,7 @@ export class CriteriaService extends BaseService<Criteria> {
           .leftJoin('Point.class', 'Class')
           .leftJoin('Class.semester', 'Semester')
           .leftJoin('Class.subject', 'Subject')
+          .leftJoin('Class.lecturer', 'Lecturer')
           .leftJoin('Subject.faculty', 'Faculty'),
         filter,
         sort,
