@@ -24,9 +24,9 @@ export class LecturerService extends BaseService<Lecturer> {
         this.repo
           .createQueryBuilder()
           .leftJoin('Lecturer.classes', 'Class')
-          .leftJoin('Lecturer.faculty', 'Faculty')
           .leftJoin('Class.points', 'Point')
           .leftJoin('Class.subject', 'Subject')
+          .leftJoin('Subject.faculty', 'Faculty')
           .leftJoin('Class.semester', 'Semester'),
         filter,
         sort,
