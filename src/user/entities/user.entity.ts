@@ -40,4 +40,12 @@ export class UserEntity {
     default: new Date(),
   })
   lastAccess: Date;
+
+  @Field(() => Date, { nullable: true, defaultValue: new Date() })
+  @Column({
+    type: 'timestamp with time zone',
+    nullable: true,
+    default: new Date(),
+  })
+  lastSendEmail: Date;
 }

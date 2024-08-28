@@ -19,6 +19,7 @@ import { SemesterModule } from './semester/semester.module';
 import { SubjectModule } from './subject/subject.module';
 import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     CriteriaModule,
     CommentModule,
     PointModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

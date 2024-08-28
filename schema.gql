@@ -261,6 +261,7 @@ type UserEntity {
   faculty: Faculty
   id: String!
   lastAccess: DateTime
+  lastSendEmail: DateTime
   lecturer: Lecturer
   password: String!
   role: Role!
