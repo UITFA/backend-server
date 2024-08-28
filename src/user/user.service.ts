@@ -16,9 +16,9 @@ export class UserService {
     if (await this.userRepo.findOneBy({ username: user.username })) {
       throw new ConflictException('Conflict');
     }
-    user.password = await bcrypt.hash(user.password, 0);
     return this.userRepo.save({
       ...user,
+      password: await bcrypt.hash(user.password, 0),
       ...(user.facultyId
         ? {
             faculty: { faculty_id: user.facultyId || undefined },
