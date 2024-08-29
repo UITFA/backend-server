@@ -14,7 +14,8 @@ services:
       - postgresql
 
   web:
-    build: .
+    # build: .
+    image: hoanghy/aqa-backend
     restart: always
     ports:
       - 80:8080
