@@ -1,23 +1,24 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { Role } from '../enums/role.enum';
+import { Role } from '../../enums/role.enum';
+import { UserEntity } from '../../entities/user.entity';
 
 @InputType()
-export class UserDto {
+export class CreateUserDto {
   @Field(() => Role)
-  role: Role;
+  role?: string;
 
   @Field(() => String, { nullable: true, defaultValue: '' })
-  displayName: string;
+  displayName?: string;
 
   @Field(() => String)
-  username: string;
+  username?: string;
 
   @Field(() => String, { nullable: true })
-  facultyId: string;
+  facultyId?: string;
 
   @Field(() => String, { nullable: true })
   lecturerId?: string;
 
   @Field(() => String)
-  password: string;
+  password?: string;
 }
