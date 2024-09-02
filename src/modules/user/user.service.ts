@@ -1,10 +1,15 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UserDto } from './dto/user.dto';
+import { UpdateUserDto } from './dto/request/update-user.dto';
+import { CreateUserDto } from './dto/request/create-user.dto';
 import { UserEntity } from './entities/user.entity';
+import { UserDto } from './dto/response/user.dto';
 
 @Injectable()
 export class UserService {
@@ -12,35 +17,37 @@ export class UserService {
     @InjectRepository(UserEntity) private userRepo: Repository<UserEntity>,
   ) {}
 
-  async create(user: UserDto): Promise<UserEntity> {
-    if (await this.userRepo.findOneBy({ username: user.username })) {
+  async create(requestUser: CreateUserDto): Promise<UserDto> {
+    if (await this.userRepo.findOneBy({ username: requestUser.username })) {
       throw new ConflictException('Conflict');
     }
-    user.password = await bcrypt.hash(user.password, 0);
-    return this.userRepo.save({
-      ...user,
-      ...(user.facultyId
+    requestUser.password = await bcrypt.hash(requestUser.password, 0);
+    const user = await this.userRepo.save({
+      ...requestUser,
+      ...(requestUser.facultyId
         ? {
-            faculty: { faculty_id: user.facultyId || undefined },
+            faculty: { faculty_id: requestUser.facultyId || undefined },
           }
         : {}),
-      ...(user.lecturerId
+      ...(requestUser.lecturerId
         ? {
-            lecturer: { lecturer_id: user.lecturerId || undefined },
+            lecturer: { lecturer_id: requestUser.lecturerId || undefined },
           }
         : {}),
     });
+
+    return new UserDto({ isDefault: false, ...user });
   }
 
-  async findByUsername(username: string) {
+  async findByUsername(username: string): Promise<UserEntity> {
     return this.userRepo.findOne({
       where: { username },
       relations: { faculty: true, lecturer: true },
     });
   }
 
-  async findAll(name?: string) {
-    return this.userRepo
+  async findAll(name?: string): Promise<UserDto[]> {
+    const users = await this.userRepo
       .createQueryBuilder('User')
       .leftJoinAndSelect('User.faculty', 'Faculty')
       .leftJoinAndSelect('User.lecturer', 'Lecturer')
@@ -57,17 +64,21 @@ export class UserService {
         { keyword: name || '' },
       )
       .getMany();
-  }
-
-  async findById(id: string) {
-    return this.userRepo.findOne({
-      where: { id },
-      relations: { faculty: true, lecturer: true },
+    return users.map((value) => {
+      return new UserDto(value);
     });
   }
 
-  async update(id: string, userDto: UpdateUserDto): Promise<UserEntity> {
-    const user = await this.userRepo.findOneBy({ id });
+  async findById(id: string): Promise<UserDto> {
+    const user = await this.userRepo.findOne({
+      where: { user_id: id },
+      relations: { faculty: true, lecturer: true },
+    });
+    return new UserDto(user);
+  }
+
+  async update(id: string, userDto: UpdateUserDto): Promise<UserDto> {
+    const user = await this.userRepo.findOneBy({ user_id: id });
     if (!user) throw new Error('User not found');
 
     Object.assign(user, userDto);
@@ -76,7 +87,7 @@ export class UserService {
       user.password = await bcrypt.hash(userDto.password, 0);
     }
 
-    return this.userRepo.save({
+    const result = await this.userRepo.save({
       ...user,
       ...(userDto.facultyId
         ? {
@@ -89,9 +100,14 @@ export class UserService {
           }
         : {}),
     });
+    return new UserDto(result);
   }
 
   remove(id: string) {
-    return this.userRepo.delete({ id });
+    return this.userRepo.delete({ user_id: id });
+  }
+
+  async createDefault(user: UserDto) {
+    return this.userRepo.save(user);
   }
 }

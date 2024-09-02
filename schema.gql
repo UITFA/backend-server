@@ -3,8 +3,40 @@
 # ------------------------------------------------------
 
 type AuthDto {
-  access_token: String!
-  user: UserEntity!
+  accessTokenExpiredDate: DateTime
+  access_token: String
+  auth: String
+  city: String
+  confirmed: String
+  country: String
+  department: String
+  displayName: String!
+  email: String!
+  faculty: FacultyDto
+  firstaccess: Int
+  fullname: String!
+  id: Int
+  isDefault: Boolean!
+  isFirstTimeLogin: Boolean
+  lang: String
+  lastAccess: DateTime
+  lastaccess: Int
+  lecturer: LecturerDto
+  mailformat: String
+  password: String
+  preferences: [UserPreference!]!
+  profileimageurl: String
+  profileimageurlsmall: String
+  refreshTokenExpiredDate: DateTime
+  refresh_token: String
+  role: Role!
+  suspended: String
+  theme: String
+  timezone: String
+  token: String
+  user: UserDto!
+  user_id: String!
+  username: String
 }
 
 type Class {
@@ -30,6 +62,15 @@ type Comment {
 type CommentQuantity {
   quantity: Int!
   type: String!
+}
+
+input CreateUserDto {
+  displayName: String = ""
+  facultyId: String
+  lecturerId: String
+  password: String!
+  role: Role!
+  username: String!
 }
 
 type Criteria {
@@ -59,6 +100,15 @@ type Faculty {
   points(class_id: String, class_type: String, criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, program: String, semester_id: String, subjects: [String!]): PaginatedGroupedPoint
   subjects(filter: FilterArgs = {}, pagination: PaginationArgs = {page: 0, size: 10}, sort: SortArgs = {}): PaginatedSubject
   total_point(class_id: String, class_type: String, criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, program: String, semester_id: String, subjects: [String!]): GroupedPoint
+}
+
+type FacultyDto {
+  display_name: String!
+  faculty_id: String!
+  full_name: String
+  is_displayed: Boolean
+  points: PaginatedGroupedPoint
+  total_point: GroupedPoint
 }
 
 input FilterArgs {
@@ -102,11 +152,30 @@ type Lecturer {
   username: String
 }
 
+type LecturerDto {
+  birth_date: DateTime
+  display_name: String
+  email: String
+  faculty: FacultyDto
+  faculty_id: String
+  gender: Boolean
+  learning: String
+  learning_position: String
+  lecturer_id: String!
+  mscb: String
+  ngach: String
+  phone: String
+  position: String
+  total_point: Float
+  username: String
+}
+
 type Mutation {
   login(password: String!, username: String!): AuthDto!
-  registerUser(user: UserDto!): UserEntity!
+  refreshToken: AuthDto!
+  registerUser(user: CreateUserDto!): UserDto!
   removeUser(id: String!): Boolean!
-  updateUser(user: UpdateUserDto!): UserEntity!
+  updateUser(user: UpdateUserDto!): UserDto!
 }
 
 type PaginatedClass {
@@ -193,14 +262,14 @@ type Query {
 
   """List all lecturer"""
   lecturers(filter: FilterArgs = {}, pagination: PaginationArgs = {page: 0, size: 10}, sort: SortArgs = {}): PaginatedLecturer!
-  profile: UserEntity!
+  profile: UserDto!
   programs: [Program!]!
 
   """List all semester"""
   semesters: [Semester!]
   subject(id: String!): Subject
   subjects(filter: FilterArgs = {}, pagination: PaginationArgs = {page: 0, size: 10}, sort: SortArgs = {}): PaginatedSubject!
-  users(name: String): [UserEntity!]!
+  users(name: String): [UserDto!]!
 }
 
 enum Role {
@@ -239,30 +308,77 @@ type Subject {
 input UpdateUserDto {
   displayName: String = ""
   facultyId: String
-  id: String!
   lastAccess: DateTime
   lecturerId: String
   password: String
   role: Role
+  user_id: String!
   username: String
 }
 
-input UserDto {
-  displayName: String = ""
-  facultyId: String
-  lecturerId: String
-  password: String!
+type UserDto {
+  auth: String
+  city: String
+  confirmed: String
+  country: String
+  department: String
+  displayName: String!
+  email: String!
+  faculty: FacultyDto
+  firstaccess: Int
+  fullname: String!
+  id: Int
+  isDefault: Boolean!
+  lang: String
+  lastAccess: DateTime
+  lastaccess: Int
+  lecturer: LecturerDto
+  mailformat: String
+  password: String
+  preferences: [UserPreference!]!
+  profileimageurl: String
+  profileimageurlsmall: String
   role: Role!
-  username: String!
+  suspended: String
+  theme: String
+  timezone: String
+  token: String
+  user_id: String!
+  username: String
 }
 
 type UserEntity {
+  auth: String
+  city: String
+  confirmed: String
+  country: String
+  department: String
   displayName: String!
-  faculty: Faculty
-  id: String!
+  email: String
+  faculty: FacultyDto
+  firstaccess: Int
+  fullname: String
+  id: Int
+  isDefault: Boolean!
+  lang: String
   lastAccess: DateTime
-  lecturer: Lecturer
-  password: String!
+  lastaccess: Int
+  lecturer: LecturerDto
+  mailformat: String
+  password: String
+  preferences: [UserPreference!]!
+  profileimageurl: String
+  profileimageurlsmall: String
   role: Role!
-  username: String!
+  suspended: String
+  theme: String
+  timezone: String
+  token: String
+  user_id: String!
+  username: String
+}
+
+type UserPreference {
+  name: String!
+  value: String!
 }
