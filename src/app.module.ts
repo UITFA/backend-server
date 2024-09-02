@@ -6,24 +6,27 @@ import { join } from 'path';
 import { DataSource } from 'typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { ClassModule } from './class/class.module';
-import { CommentModule } from './comment/comment.module';
-import { CriteriaModule } from './criteria/criteria.module';
-import { FacultyModule } from './faculty/faculty.module';
-import { LecturerModule } from './lecturer/lecturer.module';
-import { PermissionModule } from './permission/permission.module';
-import { PointModule } from './point/point.module';
-import { ProgramModule } from './program/program.module';
-import { SemesterModule } from './semester/semester.module';
-import { SubjectModule } from './subject/subject.module';
-import { UserModule } from './user/user.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
+import { PermissionModule } from './modules/permission/permission.module';
+import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { FacultyModule } from './modules/faculty/faculty.module';
+import { LecturerModule } from './modules/lecturer/lecturer.module';
+import { SemesterModule } from './modules/semester/semester.module';
+import { ProgramModule } from './modules/program/program.module';
+import { SubjectModule } from './modules/subject/subject.module';
+import { CriteriaModule } from './modules/criteria/criteria.module';
+import { CommentModule } from './modules/comment/comment.module';
+import { PointModule } from './modules/point/point.module';
+import { ApiConfigService } from './shared/services/api-config.service';
+import { ClassModule } from './modules/class/class.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: ['.env'],
+      isGlobal: true,
+      envFilePath: '.env',
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -31,19 +34,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       sortSchema: true,
       playground: true,
     }),
+
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        synchronize: true,
-        autoLoadEntities: true,
-      }),
+      imports: [SharedModule],
+      useFactory: (configService: ApiConfigService) => configService.postgresConfig,
+      inject: [ApiConfigService],
     }),
     PermissionModule,
     UserModule,
