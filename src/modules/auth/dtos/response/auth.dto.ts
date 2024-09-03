@@ -41,12 +41,12 @@ export class AuthDto extends UserDto {
   @Field(() => UserDto, { nullable: true })
   user?: UserDto;
 
-  constructor(data, user: UserDto) {
-    if (!data) return;
+  constructor(data, user: UserDto, access_token: string) {
+    // if (!data) return;
     super(data);
-    this.user = user;
     this.token = data.token;
-    this.access_token = data.access_token;
+    this.access_token = access_token ? access_token : data.access_token;
+    this.user = user;
     this.refresh_token = data.refresh_token;
     this.refreshTokenExpiredDate = data.refreshTokenExpiredDate;
     this.isFirstTimeLogin = data.isFirstTimeLogin;

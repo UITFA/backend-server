@@ -10,11 +10,11 @@ type AuthDto {
   confirmed: String
   country: String
   department: String
-  displayName: String!
-  email: String!
+  displayName: String
+  email: String
   faculty: FacultyDto
   firstaccess: Int
-  fullname: String!
+  fullname: String
   id: Int
   isDefault: Boolean!
   isFirstTimeLogin: Boolean
@@ -29,13 +29,13 @@ type AuthDto {
   profileimageurlsmall: String
   refreshTokenExpiredDate: DateTime
   refresh_token: String
-  role: Role!
+  role: Role
   suspended: String
   theme: String
   timezone: String
   token: String
   user: UserDto
-  user_id: String!
+  user_id: String
   username: String
 }
 
@@ -103,8 +103,8 @@ type Faculty {
 }
 
 type FacultyDto {
-  display_name: String!
-  faculty_id: String!
+  display_name: String
+  faculty_id: String
   full_name: String
   is_displayed: Boolean
   points: PaginatedGroupedPoint
@@ -161,7 +161,7 @@ type LecturerDto {
   gender: Boolean
   learning: String
   learning_position: String
-  lecturer_id: String!
+  lecturer_id: String
   mscb: String
   ngach: String
   phone: String
@@ -322,11 +322,11 @@ type UserDto {
   confirmed: String
   country: String
   department: String
-  displayName: String!
-  email: String!
+  displayName: String
+  email: String
   faculty: FacultyDto
   firstaccess: Int
-  fullname: String!
+  fullname: String
   id: Int
   isDefault: Boolean!
   lang: String
@@ -338,12 +338,12 @@ type UserDto {
   preferences: [UserPreference!]!
   profileimageurl: String
   profileimageurlsmall: String
-  role: Role!
+  role: Role
   suspended: String
   theme: String
   timezone: String
   token: String
-  user_id: String!
+  user_id: String
   username: String
 }
 

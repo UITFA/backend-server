@@ -10,7 +10,8 @@ import { UserDto } from '../user/dto/response/user.dto';
 import { UserService } from '../user/user.service';
 import { RequestUserDto } from './dtos/request/user.dto';
 import { AuthDto } from './dtos/response/auth.dto';
-
+import { v4 as uuidv4 } from 'uuid';
+import { Role } from '../user/enums/role.enum';
 @Injectable()
 export class AuthService {
   constructor(
@@ -26,13 +27,10 @@ export class AuthService {
 
     const { username, password } = { ...userRequest };
 
-    if (!user) {
-      console.log('???????????????/');
+    if (!user || user == null || user.user_id == null) {
       const response = await axios.post(API_URL.authentication, null, {
         params: { username, password, service: 'moodle_mobile_app' },
       });
-
-      console.log(response, 'response ne');
 
       if (!response.data.token) {
         throw new MoodleException(
@@ -46,24 +44,30 @@ export class AuthService {
         username,
         token: response.data.token,
       });
-      console.log(userData, 'userData ne');
 
-      await this.userService.createDefault(userData);
+      const newUser = await this.userService.createDefault({
+        ...userData,
+        displayName: userData.fullname,
+        id: userData.id,
+        role: Role.LECTURER,
+        email: userData.email,
+        user_id: uuidv4(),
+      });
 
       const auth = new AuthDto(
         {
           isFirstTimeLogin: true,
           token: response.data.token,
-          ...userData,
+          ...newUser,
         },
-        userData,
+        newUser,
+        null,
       );
 
-      return { auth, userData };
-      // } else if (!user.password) {
-      //   throw new UnauthorizedException('User password is missing');
+      return { auth, newUser };
     } else {
       if (user.isDefault) {
+
         const response = await axios.post(API_URL.authentication, null, {
           params: { username, password, service: 'moodle_mobile_app' },
         });
@@ -75,6 +79,7 @@ export class AuthService {
             ...user,
           },
           user,
+          null,
         );
 
         return { auth, user };
@@ -87,65 +92,22 @@ export class AuthService {
         // if (isMatch) {
         //   return user;
         // }
-        let auth: undefined;
-        return { auth, user };
+        return { user };
       }
     }
-    // throw new UnauthorizedException();
   }
 
   async login(user: UserDto) {
     const payload = { ...user, sub: user.user_id };
-    return {
+
+    const result = {
       access_token: this.jwtService.sign(payload, { expiresIn: '100d' }),
       user,
     };
+    return result;
   }
 
-  async validateDefaultUser(userRequest: RequestUserDto): Promise<AuthDto> {
-    const { password, username } = { ...userRequest };
-    const response = await axios.post(API_URL.authentication, null, {
-      params: { username, password, service: 'moodle_mobile_app' },
-    });
-
-    if (!response.data.token) {
-      throw new MoodleException(
-        response.data.exception,
-        response.data.errorcode,
-        response.data.error,
-      );
-    }
-
-    const userDataFromDB = await this.userService.findByUsername(username);
-
-    if (userDataFromDB) {
-      return new AuthDto(
-        {
-          isFirstTimeLogin: false,
-          token: response.data.token,
-          ...userDataFromDB,
-        },
-        userDataFromDB,
-      );
-    }
-
-    const userData = await this.userApiService.getUserProfile({
-      username,
-      token: response.data.token,
-    });
-
-    await this.userService.createDefault(userData);
-
-    return new AuthDto(
-      {
-        isFirstTimeLogin: true,
-        token: response.data.token,
-        ...userData,
-      },
-      userData,
-    );
-  }
-
+  
   generateToken(authDto: AuthDto) {
     const access_token = this.jwtService.sign(
       {

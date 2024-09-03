@@ -25,11 +25,8 @@ export class AuthResolver {
 
     if (!user) throw new UnauthorizedException();
 
-    if (!user.auth) {
-      const result = await this.authService.login(user.user);
-      return new AuthDto(result.access_token, result.user);
-    } else {
-      const currentUser = user.userData ? user.userData : user.user;
+    if (user.auth && user.auth != null) {
+      const currentUser = user.newUser ? user.newUser : user.user;
 
       if (currentUser) {
         const {
@@ -48,36 +45,16 @@ export class AuthResolver {
             ...currentUser,
           },
           currentUser,
+          null,
         );
       }
+    } else {
+      const result = await this.authService.login(user.user);
+      return new AuthDto({}, result.user, result.access_token);
     }
   }
 
-  // @Mutation(() => DefaultLoginDto)
-  // async loginByDefaultAccount(
-  //   @Args('username', { type: () => String }) username: string,
-  //   @Args('password', { type: () => String }) password: string,
-  // ) {
-  //   const data = new DefaultLoginDto(
-  //     await this.authService.validateDefaultUser(username, password),
-  //   );
-
-  //   const {
-  //     access_token,
-  //     refresh_token,
-  //     accessTokenExpiredDate,
-  //     refreshTokenExpiredDate,
-  //   } = this.authService.generateToken(data);
-
-  //   return {
-  //     access_token,
-  //     refresh_token,
-  //     accessTokenExpiredDate,
-  //     refreshTokenExpiredDate,
-  //     ...data,
-  //   };
-  // }
-
+  
   @Mutation(() => AuthDto)
   @UseGuards(JwtRefreshAuthGuard)
   async refreshToken(@CurrentUser() userDto: UserDto) {
