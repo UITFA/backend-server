@@ -1,15 +1,15 @@
 import {
   ConflictException,
-  Injectable,
-  NotFoundException,
+  Injectable
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { isUUID } from 'class-validator';
 import { Repository } from 'typeorm';
-import { UpdateUserDto } from './dto/request/update-user.dto';
 import { CreateUserDto } from './dto/request/create-user.dto';
-import { UserEntity } from './entities/user.entity';
+import { UpdateUserDto } from './dto/request/update-user.dto';
 import { UserDto } from './dto/response/user.dto';
+import { UserEntity } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -69,7 +69,7 @@ export class UserService {
     });
   }
 
-  async findById(id: string): Promise<UserDto> {
+  async findByUserId(id: string): Promise<UserDto> {
     const user = await this.userRepo.findOne({
       where: { user_id: id },
       relations: { faculty: true, lecturer: true },
@@ -77,8 +77,25 @@ export class UserService {
     return new UserDto(user);
   }
 
-  async update(id: string, userDto: UpdateUserDto): Promise<UserDto> {
-    const user = await this.userRepo.findOneBy({ user_id: id });
+  async findByMoodleId(id: number): Promise<UserDto> {
+    const user = await this.userRepo.findOne({
+      where: { id: id },
+      relations: { faculty: true, lecturer: true },
+    });
+    return new UserDto(user);
+  }
+
+  async getUser(id) {
+    if (!isUUID(id)) {
+      return this.userRepo.findOneBy({ id: id });
+    } else {
+      return this.userRepo.findOneBy({ user_id: id });
+    }
+  }
+
+  async update(id, userDto: UpdateUserDto): Promise<UserDto> {
+    const user = await this.getUser(id);
+    
     if (!user) throw new Error('User not found');
 
     Object.assign(user, userDto);
@@ -110,4 +127,6 @@ export class UserService {
   async createDefault(user: UserDto) {
     return this.userRepo.save(user);
   }
+
+  async setRole(user: UserDto) {}
 }

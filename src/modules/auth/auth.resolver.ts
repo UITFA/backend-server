@@ -27,7 +27,7 @@ export class AuthResolver {
 
     if (!user.auth) {
       const result = await this.authService.login(user.user);
-      return new AuthDto(result.access_token);
+      return new AuthDto(result.access_token, result.user);
     } else {
       const currentUser = user.userData ? user.userData : user.user;
 
@@ -47,6 +47,7 @@ export class AuthResolver {
             refreshTokenExpiredDate,
             ...currentUser,
           },
+          currentUser,
         );
       }
     }

@@ -24,7 +24,7 @@ export class AuthService {
     const user = await this.userService.findByUsername(userRequest.username);
     console.log('user ne', JSON.stringify(user), 'aaaa');
 
-    const { password, username } = { ...userRequest };
+    const { username, password } = { ...userRequest };
 
     if (!user) {
       console.log('???????????????/');
@@ -50,11 +50,14 @@ export class AuthService {
 
       await this.userService.createDefault(userData);
 
-      const auth = new AuthDto({
-        isFirstTimeLogin: true,
-        token: response.data.token,
-        ...userData,
-      });
+      const auth = new AuthDto(
+        {
+          isFirstTimeLogin: true,
+          token: response.data.token,
+          ...userData,
+        },
+        userData,
+      );
 
       return { auth, userData };
       // } else if (!user.password) {
@@ -65,11 +68,14 @@ export class AuthService {
           params: { username, password, service: 'moodle_mobile_app' },
         });
 
-        const auth = new AuthDto({
-          isFirstTimeLogin: false,
-          token: response.data.token,
-          ...user,
-        });
+        const auth = new AuthDto(
+          {
+            isFirstTimeLogin: false,
+            token: response.data.token,
+            ...user,
+          },
+          user,
+        );
 
         return { auth, user };
       } else {
@@ -113,11 +119,14 @@ export class AuthService {
     const userDataFromDB = await this.userService.findByUsername(username);
 
     if (userDataFromDB) {
-      return new AuthDto({
-        isFirstTimeLogin: false,
-        token: response.data.token,
-        ...userDataFromDB,
-      });
+      return new AuthDto(
+        {
+          isFirstTimeLogin: false,
+          token: response.data.token,
+          ...userDataFromDB,
+        },
+        userDataFromDB,
+      );
     }
 
     const userData = await this.userApiService.getUserProfile({
@@ -127,11 +136,14 @@ export class AuthService {
 
     await this.userService.createDefault(userData);
 
-    return new AuthDto({
-      isFirstTimeLogin: true,
-      token: response.data.token,
-      ...userData,
-    });
+    return new AuthDto(
+      {
+        isFirstTimeLogin: true,
+        token: response.data.token,
+        ...userData,
+      },
+      userData,
+    );
   }
 
   generateToken(authDto: AuthDto) {
