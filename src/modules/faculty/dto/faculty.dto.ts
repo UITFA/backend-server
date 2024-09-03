@@ -7,17 +7,17 @@ import { Faculty } from '../entities/faculty.entity';
 
 @ObjectType()
 export class FacultyDto {
-  @Field(() => String)
-  faculty_id: string;
-
-  @Field()
-  display_name: string;
+  @Field(() => String, { nullable: true })
+  faculty_id?: string;
 
   @Field({ nullable: true })
-  full_name: string;
+  display_name?: string;
+
+  @Field({ nullable: true })
+  full_name?: string;
 
   @Field(() => Boolean, { nullable: true, defaultValue: true })
-  is_displayed: boolean;
+  is_displayed?: boolean;
 
   // @Field(() => LecturerDto, { nullable: true })
   // lecturers: LecturerDto[];
@@ -32,7 +32,7 @@ export class FacultyDto {
   points: PaginatedGroupedPoint;
 
   constructor(entity: Faculty) {
-    if(!entity) return
+    if (!entity) return;
     this.faculty_id = entity.faculty_id;
     this.display_name = entity.display_name;
     this.full_name = entity.full_name;

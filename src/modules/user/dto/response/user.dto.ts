@@ -6,17 +6,17 @@ import { Role } from '../../enums/role.enum';
 
 @ObjectType()
 export class UserDto {
-  @Field(() => String)
-  user_id: string;
+  @Field(() => String, { nullable: true })
+  user_id?: string;
 
-  @Field(() => Role)
-  role: string;
-
-  @Field(() => String)
-  displayName: string;
+  @Field(() => Role, { nullable: true })
+  role?: Role;
 
   @Field(() => String, { nullable: true })
-  username: string;
+  displayName?: string;
+
+  @Field(() => String, { nullable: true })
+  username?: string;
 
   @Field(() => FacultyDto, { nullable: true })
   faculty?: FacultyDto;
@@ -25,74 +25,74 @@ export class UserDto {
   lecturer?: LecturerDto;
 
   @Field(() => String, { nullable: true })
-  password: string;
+  password?: string;
 
   @Field(() => String, { nullable: true })
-  token: string;
+  token?: string;
 
   @Field(() => Date, { nullable: true, defaultValue: new Date() })
-  lastAccess: Date;
+  lastAccess?: Date;
 
   @Field(() => Int, { nullable: true })
-  id: number;
-
-  @Field(() => String)
-  fullname: string;
-
-  @Field(() => String)
-  email: string;
+  id?: number;
 
   @Field(() => String, { nullable: true })
-  department: string;
+  fullname?: string;
+
+  @Field(() => String, { nullable: true })
+  email?: string;
+
+  @Field(() => String, { nullable: true })
+  department?: string;
 
   @Field(() => Int, { nullable: true })
-  firstaccess: number;
+  firstaccess?: number;
 
   @Field(() => Int, { nullable: true })
-  lastaccess: number;
+  lastaccess?: number;
 
   @Field(() => String, { nullable: true })
-  auth: string;
+  auth?: string;
 
   @Field(() => String, { nullable: true })
-  suspended: string;
+  suspended?: string;
 
   @Field(() => String, { nullable: true })
-  confirmed: string;
+  confirmed?: string;
 
   @Field(() => String, { nullable: true })
-  lang: string;
+  lang?: string;
 
   @Field(() => String, { nullable: true })
-  theme: string;
+  theme?: string;
 
   @Field(() => String, { nullable: true })
-  timezone: string;
+  timezone?: string;
 
   @Field(() => String, { nullable: true })
-  mailformat: number;
+  mailformat?: number;
 
   @Field(() => String, { nullable: true })
-  city: string;
+  city?: string;
 
   @Field(() => String, { nullable: true })
   country: string;
 
   @Field(() => String, { nullable: true })
-  profileimageurlsmall: string;
+  profileimageurlsmall?: string;
 
   @Field(() => String, { nullable: true })
-  profileimageurl: string;
+  profileimageurl?: string;
 
   @Field(() => Boolean, { defaultValue: true })
-  isDefault: boolean;
+  isDefault?: boolean;
 
   @Field(() => [UserPreference])
-  preferences: UserPreference[];
+  preferences?: UserPreference[];
 
   constructor(entity: UserEntity) {
     if (!entity) return;
-    this.role = entity.role;
+    this.role = Role[entity.role as keyof typeof Role];
     this.displayName = entity.displayName;
     this.id = entity.id;
     this.faculty = new FacultyDto(entity.faculty);

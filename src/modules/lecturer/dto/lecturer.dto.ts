@@ -4,50 +4,50 @@ import { Lecturer } from '../entities/lecturer.entity';
 
 @ObjectType()
 export class LecturerDto {
-  @Field(() => String)
-  lecturer_id: string;
+  @Field(() => String, { nullable: true })
+  lecturer_id?: string;
 
   @Field(() => String, { nullable: true })
-  display_name: string;
+  display_name?: string;
 
   @Field(() => String, { nullable: true })
-  mscb: string;
+  mscb?: string;
 
   @Field(() => String, { nullable: true })
-  faculty_id: string;
+  faculty_id?: string;
 
   @Field(() => FacultyDto, { nullable: true })
-  faculty: FacultyDto;
+  faculty?: FacultyDto;
 
   @Field(() => String, { nullable: true })
-  username: string;
+  username?: string;
 
   @Field(() => String, { nullable: true })
-  learning_position: string;
+  learning_position?: string;
 
   @Field(() => Date, { nullable: true })
-  birth_date: Date;
+  birth_date?: Date;
 
   @Field(() => Boolean, { nullable: true })
-  gender: boolean;
+  gender?: boolean;
 
   @Field(() => String, { nullable: true })
-  learning: string;
+  learning?: string;
 
   @Field(() => String, { nullable: true })
-  email: string;
+  email?: string;
 
   @Field(() => String, { nullable: true })
-  phone: string;
+  phone?: string;
 
   @Field(() => String, { nullable: true })
-  ngach: string;
+  ngach?: string;
 
   @Field(() => String, { nullable: true })
-  position: string;
+  position?: string;
 
   @Field(() => Number, { nullable: true })
-  total_point: number;
+  total_point?: number;
 
   constructor(entity: Lecturer) {
     if (!entity) return;

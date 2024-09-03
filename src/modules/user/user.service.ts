@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  Injectable
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { isUUID } from 'class-validator';
@@ -39,11 +36,13 @@ export class UserService {
     return new UserDto({ isDefault: false, ...user });
   }
 
-  async findByUsername(username: string): Promise<UserEntity> {
-    return this.userRepo.findOne({
+  async findByUsername(username: string): Promise<UserDto> {
+    const result = await this.userRepo.findOne({
       where: { username },
       relations: { faculty: true, lecturer: true },
     });
+
+    return new UserDto(result);
   }
 
   async findAll(name?: string): Promise<UserDto[]> {
@@ -95,14 +94,14 @@ export class UserService {
 
   async update(id, userDto: UpdateUserDto): Promise<UserDto> {
     const user = await this.getUser(id);
-    
-    if (!user) throw new Error('User not found');
+
+    // if (!user) throw new Error('User not found');
 
     Object.assign(user, userDto);
 
-    if (userDto.password) {
-      user.password = await bcrypt.hash(userDto.password, 0);
-    }
+    // if (userDto.password) {
+    //   user.password = await bcrypt.hash(userDto.password, 0);
+    // }
 
     const result = await this.userRepo.save({
       ...user,
@@ -125,7 +124,9 @@ export class UserService {
   }
 
   async createDefault(user: UserDto) {
-    return this.userRepo.save(user);
+    const result = this.userRepo.create(user);
+    const newUser = await this.userRepo.save(result);
+    return new UserDto(newUser);
   }
 
   async setRole(user: UserDto) {}
