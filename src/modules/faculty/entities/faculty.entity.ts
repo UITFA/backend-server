@@ -14,15 +14,15 @@ export class Faculty {
   @Field(() => String)
   faculty_id: string;
 
-  @Column()
-  @Field()
+  @Column({ nullable: true })
+  @Field({ nullable: true })
   display_name: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
   full_name: string;
 
-  @Column({ default: true })
+  @Column({ default: true, nullable: true })
   @Field(() => Boolean, { nullable: true, defaultValue: true })
   is_displayed: boolean;
 
