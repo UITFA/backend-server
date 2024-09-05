@@ -17,6 +17,7 @@ import { RuleService } from '../../shared/services/rule.service';
 import { RuleEngineService } from 'src/shared/services/rule-engine.service';
 import { RuleType } from '../user/enums/rule.type';
 import { Fact, RuleProperties } from 'json-rules-engine';
+import bcrypt from 'bcryptjs';
 import { IRoleEvent as IRoleEvent } from 'src/shared/entities/rule.entity';
 @Injectable()
 export class AuthService {
@@ -100,14 +101,14 @@ export class AuthService {
 
         return { auth, user };
       } else {
-        // const isMatch = await bcrypt.compare(
-        //   userRequest.password,
-        //   user.password,
-        // );
+        const isMatch = await bcrypt.compare(
+          userRequest.password,
+          user.password,
+        );
 
-        // if (isMatch) {
-        //   return user;
-        // }
+        if (isMatch) {
+          return user;
+        }
         return { user };
       }
     }
