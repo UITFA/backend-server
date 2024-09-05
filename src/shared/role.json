@@ -1,0 +1,87 @@
+[
+  {
+    "event": { "type": "role", "params": { "role": "FACULTY" } },
+    "conditions": {
+      "any": [
+        {
+          "fact": "name",
+          "value": [
+            "Ngô Thị Dung",
+            "Mai Tiến Dũng",
+            "Lâm Đức Khải",
+            "Võ Thị Thanh Lý",
+            "Cao Thị Nhạn",
+            "Trần Bá Nhiệm",
+            "Nguyễn Thị Kim Phụng",
+            "Nguyễn Đình Loan Phương",
+            "Đỗ Văn Tiến",
+            "Cao Thanh Tình",
+            "Nguyễn Gia Tuấn Anh",
+            "Ngô Đức Thành",
+            "Phan Hoàng Chương",
+            "Nguyễn Văn Kiệt",
+            "Nguyễn Minh Sơn",
+            "Lê Trung Quân",
+            "Đoàn Duy",
+            "Bùi Thị Hoàng Giang"
+          ],
+          "operator": "in"
+        }
+      ]
+    }
+  },
+  {
+    "event": { "type": "role", "params": { "role": "FULL_ACCESS" } },
+    "conditions": {
+      "any": [
+        {
+          "fact": "name",
+          "value": [
+            "Nguyễn Hoàng Tú Anh",
+            "Nguyễn Tấn Trần Minh Khang",
+            "Vũ Đức Lung",
+            "Nguyễn Hoàng Ngân"
+          ],
+          "operator": "in"
+        }
+      ]
+    }
+  },
+  {
+    "event": { "type": "role", "params": { "role": "LECTURER" } },
+    "conditions": {
+      "not": {
+        "all": [
+          {
+            "fact": "name",
+            "value": [
+              "Ngô Thị Dung",
+              "Mai Tiến Dũng",
+              "Lâm Đức Khải",
+              "Võ Thị Thanh Lý",
+              "Cao Thị Nhạn",
+              "Trần Bá Nhiệm",
+              "Nguyễn Thị Kim Phụng",
+              "Nguyễn Đình Loan Phương",
+              "Đỗ Văn Tiến",
+              "Cao Thanh Tình",
+              "Nguyễn Gia Tuấn Anh",
+              "Ngô Đức Thành",
+              "Phan Hoàng Chương",
+              "Nguyễn Văn Kiệt",
+              "Nguyễn Minh Sơn",
+              "Lê Trung Quân",
+              "Đoàn Duy",
+              "Bùi Thị Hoàng Giang",
+              "Nguyễn Hoàng Tú Anh",
+              "Nguyễn Tấn Trần Minh Khang",
+              "Vũ Đức Lung",
+              "Nguyễn Hoàng Ngân"
+            ],
+            "operator": "in"
+          }
+        ]
+      }
+    }
+  }
+]

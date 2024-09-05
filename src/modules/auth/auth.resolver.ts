@@ -54,7 +54,6 @@ export class AuthResolver {
     }
   }
 
-  
   @Mutation(() => AuthDto)
   @UseGuards(JwtRefreshAuthGuard)
   async refreshToken(@CurrentUser() userDto: UserDto) {
