@@ -12,6 +12,7 @@ import { RequestUserDto } from './dtos/request/user.dto';
 import { AuthDto } from './dtos/response/auth.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { Role } from '../user/enums/role.enum';
+import { LecturerService } from '../lecturer/lecturer.service';
 @Injectable()
 export class AuthService {
   constructor(
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly userApiService: UserApiService,
     private readonly configService: ConfigService,
+    private readonly lecturerService: LecturerService,
   ) {}
 
   async validateUser(userRequest: RequestUserDto) {
@@ -54,6 +56,15 @@ export class AuthService {
         user_id: uuidv4(),
       });
 
+      await this.lecturerService.update(
+        {
+          email: newUser.email,
+          username: newUser.username,
+          display_name: newUser.displayName,
+        },
+        newUser.fullname,
+      );
+
       const auth = new AuthDto(
         {
           isFirstTimeLogin: true,
@@ -67,7 +78,6 @@ export class AuthService {
       return { auth, newUser };
     } else {
       if (user.isDefault) {
-
         const response = await axios.post(API_URL.authentication, null, {
           params: { username, password, service: 'moodle_mobile_app' },
         });
@@ -107,7 +117,6 @@ export class AuthService {
     return result;
   }
 
-  
   generateToken(authDto: AuthDto) {
     const access_token = this.jwtService.sign(
       {

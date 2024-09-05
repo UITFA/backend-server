@@ -23,36 +23,36 @@ export class Lecturer {
 
   @Column({ nullable: true })
   @Field(() => Int, { nullable: true })
-  mscb: string;
+  mscb?: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  faculty_id: string;
+  faculty_id?: string;
 
   @ManyToOne(() => Faculty, (faculty) => faculty.lecturers)
   @JoinColumn({ name: 'faculty_id' })
   // @Field(() => Faculty, { nullable: true })
-  faculty: Faculty;
+  faculty?: Faculty;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  username: string;
+  username?: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  learning_position: string;
+  learning_position?: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  birth_date: Date;
+  birth_date?: Date;
 
   @Column({ nullable: true })
   @Field(() => Boolean, { nullable: true })
-  gender: boolean;
+  gender?: boolean;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  learning: string;
+  learning?: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
@@ -60,20 +60,20 @@ export class Lecturer {
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  phone: string;
+  phone?: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  ngach: string;
+  ngach?: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
-  position: string;
+  position?: string;
 
   @OneToMany(() => Class, (class_) => class_.lecturer)
   // @Field(() => [Class], { nullable: true })
-  classes: Class[];
+  classes?: Class[];
 
   @Field({ nullable: true })
-  total_point: number;
+  total_point?: number;
 }
