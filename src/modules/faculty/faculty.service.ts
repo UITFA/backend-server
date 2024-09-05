@@ -6,7 +6,8 @@ import { SortArgs } from 'src/common/args/sort.arg';
 import { BaseService } from 'src/common/services/BaseService';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
-import { DeepPartial, FindOptionsRelations, Repository } from 'typeorm';
+import { FindOptionsRelations, Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { Faculty } from './entities/faculty.entity';
 
 @Injectable()
@@ -52,11 +53,11 @@ export class FacultyService extends BaseService<Faculty> {
     });
   }
 
-  async create() {
+  async createDefault() {
     const defaultFaculty = this.repo.create({
       display_name: 'công nghệ phần mềm',
       full_name: 'công nghệ phần mềm',
-      faculty_id: '605',
+      faculty_id: uuidv4(),
     });
     return this.repo.save(defaultFaculty);
   }
