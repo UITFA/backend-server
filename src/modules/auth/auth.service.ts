@@ -4,17 +4,20 @@ import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 import * as moment from 'moment';
 import API_URL from 'src/common/constants/url';
+import { v4 as uuidv4 } from 'uuid';
 import { MoodleException } from '../api/errors/moodle.error';
 import { UserApiService } from '../api/services/user-api.service';
+import { LecturerService } from '../lecturer/lecturer.service';
 import { UserDto } from '../user/dto/response/user.dto';
+import { Role } from '../user/enums/role.enum';
 import { UserService } from '../user/user.service';
 import { RequestUserDto } from './dtos/request/user.dto';
 import { AuthDto } from './dtos/response/auth.dto';
-import { v4 as uuidv4 } from 'uuid';
-import { Role } from '../user/enums/role.enum';
-import { LecturerService } from '../lecturer/lecturer.service';
-import { FacultyDto } from '../faculty/dto/faculty.dto';
-import { LecturerDto } from '../lecturer/dto/lecturer.dto';
+import { RuleService } from '../../shared/services/rule.service';
+import { RuleEngineService } from 'src/shared/services/rule-engine.service';
+import { RuleType } from '../user/enums/rule.type';
+import { Fact, RuleProperties } from 'json-rules-engine';
+import { IRoleEvent as IRoleEvent } from 'src/shared/entities/rule.entity';
 @Injectable()
 export class AuthService {
   constructor(
@@ -23,6 +26,7 @@ export class AuthService {
     private readonly userApiService: UserApiService,
     private readonly configService: ConfigService,
     private readonly lecturerService: LecturerService,
+    private readonly ruleService: RuleService,
   ) {}
 
   async validateUser(userRequest: RequestUserDto) {
@@ -52,16 +56,20 @@ export class AuthService {
         userData.fullname,
       );
 
+      const role = await this.handleRuleEngine(userData.fullname);
+
       const newUser = await this.userService.createDefault({
         ...userData,
         user_id: uuidv4(),
         displayName: userData.fullname,
         id: userData.id,
-        role: Role.LECTURER,
+        role: role ? role : Role.LECTURER,
         email: userData.email,
         lecturer: lecturer,
         faculty: lecturer.faculty,
       });
+
+      await this.handleRuleEngine(newUser.displayName);
 
       const auth = new AuthDto(
         {
@@ -103,6 +111,28 @@ export class AuthService {
         return { user };
       }
     }
+  }
+
+  async handleRuleEngine(name: string): Promise<Role> {
+    const engine = new RuleEngineService();
+
+    const rule = await this.ruleService.findByName(RuleType.ROLE);
+
+    engine.importRules(rule.ruleData as RuleProperties[]);
+    const fact = new Fact('name', name);
+    engine.addFact(fact);
+
+    const result = await engine.run();
+
+    const event = result.events[0] as IRoleEvent;
+    const message = event.params.role;
+
+    const role = Role[message as keyof typeof Role];
+    if (!role) {
+      throw new Error(`Invalid role ne: ${message}`);
+    }
+
+    return role;
   }
 
   async login(user: UserDto) {
