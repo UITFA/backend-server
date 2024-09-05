@@ -99,9 +99,9 @@ export class UserService {
 
     Object.assign(user, userDto);
 
-    // if (userDto.password) {
-    //   user.password = await bcrypt.hash(userDto.password, 0);
-    // }
+    if (userDto.password) {
+      user.password = await bcrypt.hash(userDto.password, 0);
+    }
 
     const result = await this.userRepo.save({
       ...user,
