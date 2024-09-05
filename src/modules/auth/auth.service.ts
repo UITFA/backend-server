@@ -107,7 +107,7 @@ export class AuthService {
         );
 
         if (isMatch) {
-          return user;
+          return {user};
         }
         return { user };
       }
