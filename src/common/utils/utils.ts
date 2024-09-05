@@ -1,6 +1,9 @@
-import { HttpException, InternalServerErrorException, type Logger } from '@nestjs/common';
+import {
+  HttpException,
+  InternalServerErrorException,
+  type Logger,
+} from '@nestjs/common';
 import bcrypt from 'bcryptjs';
-
 
 /**
  * generate hash from password or string
@@ -17,7 +20,10 @@ export function generateHash(password: string): string {
  * @param {string} hash
  * @returns {Promise<boolean>}
  */
-export function validateHash(password: string | undefined, hash: string | undefined | null): Promise<boolean> {
+export function validateHash(
+  password: string | undefined,
+  hash: string | undefined | null,
+): Promise<boolean> {
   if (!password || !hash) {
     return Promise.resolve(false);
   }
@@ -33,4 +39,8 @@ export function handleError(logger: Logger, error: unknown): HttpException {
   }
 
   throw new InternalServerErrorException(error);
+}
+
+export function normalizeName(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, ' ').trim();
 }

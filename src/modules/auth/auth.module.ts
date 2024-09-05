@@ -8,12 +8,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ApiService } from '../api/services/api.service';
 import { SharedModule } from 'src/shared/shared.module';
 import { ApiModule } from '../api/api.module';
+import { LecturerModule } from '../lecturer/lecturer.module';
 
 @Module({
   imports: [
     UserModule,
     ApiModule,
     SharedModule,
+    LecturerModule,
     PassportModule,
     JwtModule.register({
       secret: 'secret',

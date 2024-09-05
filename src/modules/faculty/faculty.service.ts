@@ -6,7 +6,7 @@ import { SortArgs } from 'src/common/args/sort.arg';
 import { BaseService } from 'src/common/services/BaseService';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
-import { FindOptionsRelations, Repository } from 'typeorm';
+import { DeepPartial, FindOptionsRelations, Repository } from 'typeorm';
 import { Faculty } from './entities/faculty.entity';
 
 @Injectable()
@@ -50,5 +50,14 @@ export class FacultyService extends BaseService<Faculty> {
     return this.repo.findOne({
       where: { faculty_id: id },
     });
+  }
+
+  async create() {
+    const defaultFaculty = this.repo.create({
+      display_name: 'công nghệ phần mềm',
+      full_name: 'công nghệ phần mềm',
+      faculty_id: '605',
+    });
+    return this.repo.save(defaultFaculty);
   }
 }
