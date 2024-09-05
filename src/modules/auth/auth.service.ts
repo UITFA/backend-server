@@ -13,6 +13,8 @@ import { AuthDto } from './dtos/response/auth.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { Role } from '../user/enums/role.enum';
 import { LecturerService } from '../lecturer/lecturer.service';
+import { FacultyDto } from '../faculty/dto/faculty.dto';
+import { LecturerDto } from '../lecturer/dto/lecturer.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -25,7 +27,6 @@ export class AuthService {
 
   async validateUser(userRequest: RequestUserDto) {
     const user = await this.userService.findByUsername(userRequest.username);
-    console.log('user ne', JSON.stringify(user), 'aaaa');
 
     const { username, password } = { ...userRequest };
 
@@ -47,23 +48,20 @@ export class AuthService {
         token: response.data.token,
       });
 
+      const lecturer = await this.lecturerService.mapLecturer(
+        userData.fullname,
+      );
+
       const newUser = await this.userService.createDefault({
         ...userData,
+        user_id: uuidv4(),
         displayName: userData.fullname,
         id: userData.id,
         role: Role.LECTURER,
         email: userData.email,
-        user_id: uuidv4(),
+        lecturer: lecturer,
+        faculty: lecturer.faculty,
       });
-
-      await this.lecturerService.update(
-        {
-          email: newUser.email,
-          username: newUser.username,
-          display_name: newUser.displayName,
-        },
-        newUser.fullname,
-      );
 
       const auth = new AuthDto(
         {

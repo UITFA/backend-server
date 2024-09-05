@@ -41,6 +41,3 @@ export function handleError(logger: Logger, error: unknown): HttpException {
   throw new InternalServerErrorException(error);
 }
 
-export function normalizeName(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, ' ').trim();
-}

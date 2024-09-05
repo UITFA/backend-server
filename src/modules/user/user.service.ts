@@ -95,7 +95,7 @@ export class UserService {
   async update(id, userDto: UpdateUserDto): Promise<UserDto> {
     const user = await this.getUser(id);
 
-    // if (!user) throw new Error('User not found');
+    if (!user) return;
 
     Object.assign(user, userDto);
 
