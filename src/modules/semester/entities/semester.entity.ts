@@ -6,7 +6,7 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 export class Semester {
   @PrimaryColumn()
   @Field(() => String)
-  semester_id: string;
+  semester_id: string;    
 
   @Column()
   @Field()

@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { SemesterDto } from './dto/Semester.dto';
+import { SemesterRequestDto } from './dto/Semester.request.dto';
 import { Semester } from './entities/semester.entity';
 
 @Injectable()
 export class SemesterService {
-  constructor(@InjectRepository(Semester) private repo: Repository<Semester>) {}
+  constructor(
+    @InjectRepository(Semester) private repo: Repository<Semester>,
+  ) {}
 
   async findAll() {
     return (await this.repo.find()).reverse();
@@ -24,5 +28,24 @@ export class SemesterService {
       .where('Point.criteria_id = :criteria_id', { criteria_id })
       .groupBy('Semester.semester_id')
       .getMany();
+  }
+
+  async findSemester(semester: SemesterRequestDto): Promise<SemesterDto> {
+    const semesterEntity = await this.repo.findOne({
+      where: {
+        type: semester.type,
+        year: semester.year,
+      },
+    });
+    return new SemesterDto(semesterEntity);
+  }
+
+  async createSemester(semester: SemesterRequestDto): Promise<SemesterDto> {
+    const semesterEntity = this.repo.create();
+    semesterEntity.display_name = `${semester.type} ${semester.year}`;
+    semesterEntity.type = semester.type;
+    semesterEntity.year = semester.year;
+    await this.repo.save(semesterEntity);
+    return new SemesterDto(semesterEntity);
   }
 }
