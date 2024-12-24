@@ -53,9 +53,11 @@ type Class {
 }
 
 type Comment {
+  aspect: String!
   class: Class
   comment_id: String!
   display_name: String!
+  sentiment: String!
   type: String!
 }
 
@@ -109,6 +111,25 @@ type FacultyDto {
   is_displayed: Boolean
   points: PaginatedGroupedPoint
   total_point: GroupedPoint
+}
+
+type FileEntity {
+  fileName: String!
+  id: String!
+  key: String!
+  mimeType: String!
+  originalName: String!
+  size: Int!
+}
+
+input FileRequestDto {
+  buffer: String!
+  encoding: String!
+  filename: String!
+  mimetype: String!
+  originalname: String!
+  path: String!
+  size: Float!
 }
 
 input FilterArgs {
@@ -171,6 +192,8 @@ type LecturerDto {
 }
 
 type Mutation {
+  """Upload file"""
+  importFile(file: FileRequestDto!): Boolean!
   login(password: String!, username: String!): AuthDto!
   refreshToken: AuthDto!
   registerUser(user: CreateUserDto!): UserDto!
@@ -253,6 +276,9 @@ type Query {
 
   """Get detail information of a faculty and its lecturer list"""
   faculty(id: String!): Faculty
+
+  """View file information"""
+  file(id: String!): FileEntity
 
   """List all points, group by a specific entity"""
   groupedPoints(class_id: String, class_type: String, criteria_id: String, faculty_id: String, groupEntity: String = "Subject", keyword: String = "", lecturer_id: String, page: Int = 0, program: String, semester_id: String, size: Int = 10, subjects: [String!]): PaginatedGroupedPoint!
