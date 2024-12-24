@@ -1,23 +1,27 @@
-import path from 'node:path';
 import { PassThrough, Readable } from 'node:stream';
+import * as path from 'path';
 
-import { S3 } from '@aws-sdk/client-s3';
 import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client
+} from '@aws-sdk/client-s3';
+import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
-import mime from 'mime-types';
 
-import { type IFile, IStream } from '../../interfaces';
+import { FileDto } from 'src/modules/files/dtos/responses/File.dto';
+import { IStream } from '../../interfaces';
 import { ApiConfigService } from './api-config.service';
 import { GeneratorService } from './generator.service';
-import { FileDto } from 'src/modules/files/dtos/responses/File.dto';
 
 @Injectable()
 export class S3Service {
-  private readonly s3: S3;
+  private readonly s3Client: S3Client;
   private readonly logger = new Logger(S3Service.name);
 
   constructor(
@@ -26,7 +30,7 @@ export class S3Service {
   ) {
     const awsS3Config = configService.awsS3Config;
 
-    this.s3 = new S3({
+    this.s3Client = new S3Client({
       apiVersion: awsS3Config.bucketApiVersion,
       region: awsS3Config.bucketRegion,
       credentials: {
@@ -34,31 +38,6 @@ export class S3Service {
         secretAccessKey: awsS3Config.secretAccessKeyId,
       },
     });
-  }
-
-  async uploadImage(file: FileDto, folderName: string): Promise<string> {
-    const fileName = this.generatorService.fileName(
-      <string>mime.extension(file.mimetype),
-    );
-    const key = `${folderName}/${fileName}`;
-
-    try {
-      await this.s3.putObject({
-        Bucket: this.configService.awsS3Config.bucketName,
-        Body: file.buffer,
-        ACL: 'public-read',
-        ContentType: file.mimetype,
-        Key: key,
-      });
-    } catch (error) {
-      this.logger.error(`Cannot upload image with error: ${error}`);
-
-      throw new InternalServerErrorException(
-        `Cannot upload image with error: ${error}`,
-      );
-    }
-
-    return key;
   }
 
   getImageUrl(imageId: string | undefined): string {
@@ -69,6 +48,17 @@ export class S3Service {
 
   async convertImageUrlToFile(url: string): Promise<FileDto | null> {
     try {
+      if (!url) {
+        throw new Error('URL is required');
+      }
+      const decodedUrl = decodeURIComponent(url);
+
+      const parsedUrl = new URL(decodedUrl);
+
+      const originalname = parsedUrl.pathname
+        ? path.basename(parsedUrl.pathname)
+        : 'unknown';
+
       const response: AxiosResponse<IStream, IStream> = await axios.get(url, {
         responseType: 'stream',
       });
@@ -90,18 +80,19 @@ export class S3Service {
       const encoding = 'binary';
       const fieldname = 'file';
       const mimetype =
-        String(response.headers['content-type']) || 'png|image/png|csv|xlsx';
-      const originalname = path.basename(url);
+        String(response.headers['content-type']) || 'application/octet-stream';
       const size = buffer.length;
 
-      const file: IFile = {
+      const file: FileDto = {
         encoding,
-        buffer,
-        fieldname,
+        filename: fieldname,
         mimetype,
         originalname,
         size,
+        path: path.resolve(originalname).toString(),
+        buffer,
       };
+      return file;
     } catch (error) {
       this.logger.error('Error downloading image:', error);
 
@@ -112,6 +103,56 @@ export class S3Service {
       throw error;
     }
   }
+
+  async downloadFile(key: string): Promise<Buffer> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: key,
+      });
+
+      const data = await this.s3Client.send(command);
+
+      if (!data.Body) {
+        throw new BadRequestException('File not found in S3');
+      }
+
+      const buffer = await streamToBuffer(data.Body);
+
+      return buffer;
+    } catch (error) {
+      throw new BadRequestException(`Lỗi tải file từ S3: ${error.message}`);
+    }
+  }
+
+  async uploadFile(file: FileDto, targetFolder: string): Promise<string> {
+    const key = `${targetFolder}/${file.filename}`;
+
+    try {
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        }),
+      );
+
+      return key;
+    } catch (error) {
+      this.logger.error(`Error uploading file to S3: ${error.message}`);
+      throw new InternalServerErrorException('Error uploading file to S3');
+    }
+  }
 }
+ 
+const streamToBuffer = (stream: any): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const chunks: any[] = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+  });
+};
 
 export class ReadableConfig extends Readable {}

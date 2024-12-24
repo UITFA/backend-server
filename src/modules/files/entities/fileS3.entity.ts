@@ -9,23 +9,23 @@ export class FileEntity {
   @Field(() => String)
   id!: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field(() => String)
   key!: string;
 
-  @Column({ name: 'file_name' })
+  @Column({ name: 'file_name', nullable: true })
   @Field(() => String)
   fileName: string;
 
-  @Column({ name: 'mime_type' })
+  @Column({ name: 'mime_type', nullable: true })
   @Field(() => String)
   mimeType: string;
 
-  @Column({ name: 'original_name' })
+  @Column({ name: 'original_name', nullable: true })
   @Field(() => String)
   originalName: string;
 
-  @Column({ name: 'size' })
+  @Column({ name: 'size', nullable: true })
   @Field(() => Int)
   size: number;
 }

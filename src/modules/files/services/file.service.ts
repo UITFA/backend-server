@@ -1,40 +1,34 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 
-import { IFile } from '../../../interfaces';
-import { FileRepository } from '../repositories/file.repository';
-import { S3Service } from 'src/shared/services/s3Service.service';
-import {
-  PublicImageDto,
-  UploadedFileDto,
-} from '../dtos/responses/CustomFile.dto';
-import {
-  ImportFileConfig,
-  regexSemester,
-} from 'src/common/constants/import-file-config';
-import * as AWS from 'aws-sdk';
-import * as fs from 'fs';
 import * as excelToJson from 'convert-excel-to-json';
-import { FileDto } from '../dtos/responses/File.dto';
-import { SemesterService } from 'src/modules/semester/semester.service';
-import { SemesterRequestDto } from 'src/modules/semester/dto/Semester.request.dto';
+import * as fs from 'fs';
+import {
+  regexSemester
+} from 'src/common/constants/import-file-config';
 import { CommentService } from 'src/modules/comment/comment.service';
 import { CommentDto } from 'src/modules/comment/dto/Comment.dto';
-import { FileRequestDto } from '../dtos/request/File.request.dto';
+import { SemesterRequestDto } from 'src/modules/semester/dto/Semester.request.dto';
+import { SemesterService } from 'src/modules/semester/semester.service';
+import { S3Service } from 'src/shared/services/s3Service.service';
+import {
+  PublicImageDto
+} from '../dtos/responses/CustomFile.dto';
+import { FileDto } from '../dtos/responses/File.dto';
+import { FileRepository } from '../repositories/file.repository';
 
 @Injectable()
 export class FileService {
   public logger: Logger;
-  private readonly s3Service: S3Service;
-  private readonly semesterService: SemesterService;
-  private readonly commentService: CommentService;
 
   constructor(
+    private readonly semesterService: SemesterService,
+    private readonly commentService: CommentService,
     private readonly awsS3Service: S3Service,
     private readonly fileRepository: FileRepository,
   ) {
@@ -63,26 +57,10 @@ export class FileService {
     }
   }
 
-  private async uploadImageFile(
-    file: FileDto,
+  async uploadAndProcessFile(
+    file: Express.Multer.File,
     targetFolder: string,
-  ): Promise<UploadedFileDto> {
-    const imageKey = await this.awsS3Service.uploadImage(file, targetFolder);
-    const imageId = encodeURIComponent(imageKey);
-
-    const insertedImage = await this.fileRepository.createFile(
-      new FileDto(imageId),
-    );
-
-    const uploadedFileDto: UploadedFileDto = {
-      id: insertedImage.id,
-    };
-
-    return uploadedFileDto;
-  }
-
-  async importFile(file: FileRequestDto, targetFolder: string) {
-    const buffer = Buffer.from(file.buffer, 'base64');
+  ): Promise<void> {
     const fileDto = new FileDto(
       file.path,
       file.encoding,
@@ -90,21 +68,128 @@ export class FileService {
       file.mimetype,
       file.originalname,
       file.size,
-      buffer,
+      file.buffer,
     );
-    const fileUpload: UploadedFileDto = await this.uploadImageFile(
-      fileDto,
-      targetFolder,
-    );
+    const fileKey = await this.awsS3Service.uploadFile(fileDto, targetFolder);
 
-    const publicFileUrl = await this.getImageById(fileUpload?.id);
-
-    const fileInfo = await this.s3Service.convertImageUrlToFile(
-      publicFileUrl.url,
+    const uploadedFile = await this.fileRepository.createFile(
+      new FileDto(fileKey, file.mimetype, file.originalname),
     );
 
-    return this.importCommentsFromFile(fileInfo);
+    this.logger.log(`File uploaded: ${uploadedFile.key}`);
+
+    const fileBuffer = await this.awsS3Service.downloadFile(fileKey);
+    await this.processImportFile(fileBuffer, uploadedFile.originalName);
   }
+
+  private async processImportFile(
+    fileBuffer: Buffer,
+    fileName: string,
+  ): Promise<void> {
+    try {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+        defval: null,
+      });
+
+      if (rawData.length === 0) {
+        throw new BadRequestException('No data in file');
+      }
+
+      const isValid = this.validateFile(rawData);
+      if (!isValid) {
+        throw new BadRequestException('Invalid file');
+      }
+
+      await this.processFile(rawData);
+    } catch (error) {
+      this.logger.error(`Error when hadling ${fileName}: ${error.message}`);
+      throw new BadRequestException('Error when handle file');
+    }
+  }
+
+  private validateFile(dataFile: any[]): boolean {
+    if (!Array.isArray(dataFile) || dataFile.length === 0) {
+      this.logger.error('Data file is empty or not an array');
+      return false;
+    }
+
+    const firstRow = dataFile[0];
+    const firstColumnKey = Object.keys(firstRow)[0];
+    const cleanedKey = firstColumnKey.replace(/[–—]/g, '-');
+
+    if (
+      typeof cleanedKey === 'string' &&
+      regexSemester.test(cleanedKey.trim())
+    ) {
+      return true;
+    } else {
+      this.logger.error(
+        `First row name does not match regex: ${firstColumnKey}`,
+      );
+      return false;
+    }
+  }
+
+  private async processFile(dataFile: any[]): Promise<void> {
+    const firstRow = dataFile[0];
+    const firstColumn = Object.keys(firstRow)[0] as string;
+    const match = regexSemester.exec(firstColumn);
+    console.log('www', firstRow);
+    console.log('bbb', firstColumn);
+    console.log('ccc', match);
+
+    if (!match) {
+      throw new BadRequestException('Invalid first row');
+    }
+
+    const [_, type, year] = match;
+
+    const semesterRequest = new SemesterRequestDto(type, year);
+
+    // Tìm hoặc tạo mới semester
+    let semester = await this.semesterService.findSemester(semesterRequest);
+
+    if (!semester) {
+      semester = await this.semesterService.createSemester(semesterRequest);
+    } else {
+      await this.commentService.deleteCommentsBySemesterId(semester.id);
+    }
+
+    // Tạo comments
+    const comments = dataFile.slice(1).map((row) => {
+      const content = Object.values(row)[0] as string; // Lấy giá trị từ cột đầu tiên
+      console.log('Content:', content); // In ra để kiểm tra
+      return new CommentDto(content);
+    });
+
+    await this.commentService.createCommentsForSemester(semester.id, comments);
+  }
+
+  // async importFile(file: Express.Multer.File, targetFolder: string) {
+  //   const fileDto = new FileDto(
+  //     file.path,
+  //     file.encoding,
+  //     file.filename,
+  //     file.mimetype,
+  //     file.originalname,
+  //     file.size,
+  //     file.buffer,
+  //   );
+  //   const fileUpload: UploadedFileDto = await this.uploadImageFile(
+  //     fileDto,
+  //     targetFolder,
+  //   );
+
+  //   const publicFileUrl = await this.getImageById(fileUpload?.id);
+
+  //   const fileInfo = await this.awsS3Service.convertImageUrlToFile(
+  //     publicFileUrl.url,
+  //   );
+
+  //   return this.importCommentsFromFile(fileInfo);
+  // }
 
   private async importCommentsFromFile(file: FileDto) {
     return this.getCommentsFromFileForImport(file);
@@ -114,112 +199,103 @@ export class FileService {
     const listCommentRawData = await this.convertXlsxToListCommentEntity(file);
 
     fs.unlinkSync(file.path);
-
-    if (listCommentRawData.length === 0) {
-      throw new BadRequestException('No data in file');
-    }
   }
 
   private async convertXlsxToListCommentEntity(file: FileDto) {
-    let filePath: string;
-    try {
-      filePath = file.path;
-    } catch {
-      throw new BadRequestException('Could not file in form-data');
-    }
-    let dataFile = null,
-      dataJson = null;
-    try {
-      dataFile = excelToJson({
-        sourceFile: filePath,
-        header: {
-          rows: ImportFileConfig.HEADER_ROW,
-        },
-      });
-      for (const key of Object.keys(dataFile)) {
-        dataFile = dataFile[key];
-        break;
-      }
-    } catch {
-      throw new BadRequestException('This is not a excel file');
-    }
+    const filePath = file.path;
 
-    if (this.validateFile(dataFile) === false) {
-      throw new BadRequestException('Not right format');
-    }
     try {
-      dataJson = excelToJson({
+      const dataJson = excelToJson({
         sourceFile: filePath,
-        includeEmptyLines: true,
+        includeEmptyLines: false,
         header: {
-          rows: ImportFileConfig.HEADER_ROW,
+          rows: 1, // Đọc hàng đầu tiên làm header
         },
       });
 
-      const result = dataJson[Object.keys(dataJson)[0]].slice(
-        ImportFileConfig.HEADER_ROW,
-      );
-      const formatted = [];
-      for (const item of result) {
-        formatted.push({});
+      const sheetName = Object.keys(dataJson)[0];
+      const rows = dataJson[sheetName];
+
+      if (!rows || rows.length === 0) {
+        throw new BadRequestException('No data in file');
       }
-      return formatted;
-    } catch {
-      throw new BadRequestException('Not right format');
-    }
-  }
 
-  private validateFile(dataFile) {
-    let isTemplateFile = true;
-
-    if (dataFile.length === 0) {
-      isTemplateFile = false;
-    } else {
-      for (const row of dataFile) {
-        const firstColumn = Object.values(row)[0];
-        if (
-          typeof firstColumn !== 'string' ||
-          !regexSemester.test(firstColumn)
-        ) {
-          return false;
-        }
+      // Hàng đầu tiên chứa type và year
+      const headerRow = rows[0];
+      const semesterInfo = headerRow[0]; // Lấy giá trị từ cột đầu tiên
+      if (!semesterInfo) {
+        throw new BadRequestException('Không tìm thấy thông tin semester');
       }
-      return true;
+
+      const [type, year] = semesterInfo.split(' '); // Giả sử format là 'Spring 2024'
+
+      // Lấy các hàng còn lại làm comment
+      const comments = rows
+        .slice(1)
+        .map((row) => row[0]?.toString().trim())
+        .filter(Boolean);
+
+      return {
+        type,
+        year,
+        comments, // Mảng các comment
+      };
+    } catch (error) {
+      throw new BadRequestException('Lỗi xử lý file: ' + error.message);
     }
-    return isTemplateFile;
   }
 
-  async processFile(dataFile: any[]): Promise<void> {
-    if (dataFile.length < 1) {
-      throw new Error('No data in file');
-    }
+  // private validateFile(dataFile) {
+  //   let isTemplateFile = true;
 
-    const firstRow = dataFile[0];
-    const firstColumn = Object.values(firstRow)[0] as string;
-    const match = regexSemester.exec(firstColumn);
+  //   if (dataFile.length === 0) {
+  //     isTemplateFile = false;
+  //   } else {
+  //     for (const row of dataFile) {
+  //       const firstColumn = Object.values(row)[0];
+  //       if (
+  //         typeof firstColumn !== 'string' ||
+  //         !regexSemester.test(firstColumn)
+  //       ) {
+  //         return false;
+  //       }
+  //     }
+  //     return true;
+  //   }
+  //   return isTemplateFile;
+  // }
 
-    if (!match) {
-      throw new Error(
-        'Invalid first row. Valid format is HK1 yyyy-yyyy or HK2 yyyy-yyyy.',
-      );
-    }
+  // async processFile(dataFile: any[]): Promise<void> {
+  //   if (dataFile.length < 1) {
+  //     throw new Error('No data in file');
+  //   }
 
-    const [_, type, year] = match;
+  //   const firstRow = dataFile[0];
+  //   const firstColumn = Object.values(firstRow)[0] as string;
+  //   const match = regexSemester.exec(firstColumn);
 
-    const semesterRequest = new SemesterRequestDto(type, year);
+  //   if (!match) {
+  //     throw new Error(
+  //       'Invalid first row. Valid format is HK1 yyyy-yyyy or HK2 yyyy-yyyy.',
+  //     );
+  //   }
 
-    let semester = await this.semesterService.findSemester(semesterRequest);
+  //   const [_, type, year] = match;
 
-    if (!semester) {
-      semester = await this.semesterService.createSemester(semesterRequest);
-    } else {
-      await this.commentService.deleteCommentsBySemesterId(semester.id);
-    }
+  //   const semesterRequest = new SemesterRequestDto(type, year);
 
-    const comments = dataFile.slice(1).map((row) => {
-      const content = Object.values(row)[1] as string;
-      return new CommentDto(content);
-    });
-    await this.commentService.createCommentsForSemester(semester.id, comments);
-  }
+  //   let semester = await this.semesterService.findSemester(semesterRequest);
+
+  //   if (!semester) {
+  //     semester = await this.semesterService.createSemester(semesterRequest);
+  //   } else {
+  //     await this.commentService.deleteCommentsBySemesterId(semester.id);
+  //   }
+
+  //   const comments = dataFile.slice(1).map((row) => {
+  //     const content = Object.values(row)[1] as string;
+  //     return new CommentDto(content);
+  //   });
+  //   await this.commentService.createCommentsForSemester(semester.id, comments);
+  // }
 }

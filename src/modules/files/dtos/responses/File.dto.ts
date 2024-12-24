@@ -5,15 +5,15 @@ export class FileDto {
   encoding: string;
 
   filename: string;
-  
+
   mimetype: string;
-  
+
   originalname: string;
-  
+
   size: number;
-  
+
   path: string;
-  
+
   buffer: Buffer;
 
   constructor(

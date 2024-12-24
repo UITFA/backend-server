@@ -6,7 +6,7 @@ export class CommentDto {
   id: string;
 
   @Field()
-  displayName: string;
+  content: string;
 
   @Field()
   type: string;
@@ -20,13 +20,13 @@ export class CommentDto {
   semester_id;
 
   constructor(
-    displayName?: string,
+    content?: string,
     type?: string,
     aspect?: string,
     sentiment?: string,
     semesterId?: string,
   ) {
-    this.displayName = displayName;
+    this.content = content;
     this.type = type;
     this.aspect = aspect;
     this.sentiment = sentiment;

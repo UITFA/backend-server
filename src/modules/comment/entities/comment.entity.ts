@@ -1,12 +1,12 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { Class } from '../../class/entities/class.entity';
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { Semester } from 'src/modules/semester/entities/semester.entity';
 
 @ObjectType()
 @Entity({ name: 'comment' })
 export class Comment {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   @Field(() => String)
   comment_id: string;
 
@@ -17,9 +17,9 @@ export class Comment {
 
   @Column({ name: 'content' })
   @Field()
-  display_name: string;
+  content: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field(() => String)
   type: string;
 
