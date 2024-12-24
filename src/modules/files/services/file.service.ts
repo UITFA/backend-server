@@ -18,12 +18,13 @@ import { FileRepository } from '../repositories/file.repository';
 
 @Injectable()
 export class FileService {
+  public logger: Logger;
+
   constructor(
     private readonly semesterService: SemesterService,
     private readonly commentService: CommentService,
     private readonly awsS3Service: S3Service,
     private readonly fileRepository: FileRepository,
-    public logger: Logger,
   ) {
     this.logger = new Logger(FileService.name);
   }
