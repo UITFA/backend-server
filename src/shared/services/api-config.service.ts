@@ -104,4 +104,13 @@ export class ApiConfigService {
     return value;
   }
 
+  get awsS3Config() {
+    return {
+      bucketRegion: this.getString('AWS_S3_BUCKET_REGION'),
+      bucketApiVersion: this.getString('AWS_S3_API_VERSION'),
+      bucketName: this.getString('AWS_S3_BUCKET_NAME'),
+      accessKeyId: this.getString('AWS_S3_ACCESS_KEY_ID'),
+      secretAccessKeyId: this.getString('AWS_S3_SECRET_ACCESS_KEY'),
+    };
+  }
 }

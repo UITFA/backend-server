@@ -21,6 +21,7 @@ import { PointModule } from './modules/point/point.module';
 import { ApiConfigService } from './shared/services/api-config.service';
 import { ClassModule } from './modules/class/class.module';
 import { SharedModule } from './shared/shared.module';
+import { FileModule } from './modules/files/file.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { SharedModule } from './shared/shared.module';
     CriteriaModule,
     CommentModule,
     PointModule,
+    FileModule
   ],
   controllers: [AppController],
   providers: [AppService],
