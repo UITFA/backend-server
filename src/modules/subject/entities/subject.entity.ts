@@ -7,14 +7,14 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @ObjectType()
 @Entity()
 export class Subject {
   @Field()
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   subject_id: string;
 
   @Field({ nullable: true })
@@ -22,13 +22,14 @@ export class Subject {
   display_name: string;
 
   @Field({ nullable: true })
-  @Column()
+  @Column({ nullable: true })
   faculty_id: string;
 
   @ManyToOne(() => Faculty)
   @JoinColumn({ name: 'faculty_id' })
   faculty: Faculty;
 
+  @Column({ nullable: true })
   @Field({ nullable: true })
   total_point: number;
 

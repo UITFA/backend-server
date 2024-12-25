@@ -8,6 +8,7 @@ import { paginateByQuery } from '../../common/utils/paginate';
 import { Point } from '../../modules/point/entities/point.entity';
 import { FindOptionsRelations, Repository } from 'typeorm';
 import { Subject } from './entities/subject.entity';
+import { SubjectResponseDto } from './dto/Subject.response.dto';
 
 @Injectable()
 export class SubjectService extends BaseService<Subject> {
@@ -47,5 +48,16 @@ export class SubjectService extends BaseService<Subject> {
     return this.repo.findOne({
       where: { subject_id: id },
     });
+  }
+
+  async findOrCreateSubject(display_name: string, faculty_id:string) {
+    let subject = await this.repo.findOne({
+      where: { display_name, faculty_id },
+    });
+    if (!subject) {
+      subject = this.repo.create({ display_name, faculty_id });
+      return this.repo.save(subject);
+    }
+    return new SubjectResponseDto(subject);
   }
 }
