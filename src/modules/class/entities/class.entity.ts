@@ -9,17 +9,17 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @ObjectType()
 @Entity({ name: 'class' })
 export class Class {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   @Field(() => String)
   class_id: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field()
   display_name: string;
 
@@ -27,14 +27,14 @@ export class Class {
   @JoinColumn({ name: 'semester_id' })
   semester: Semester;
 
-  @Column()
+  @Column({ nullable: true })
   semester_id: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field()
   program: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field()
   class_type: string;
 
@@ -42,21 +42,21 @@ export class Class {
   @JoinColumn({ name: 'subject_id' })
   subject: Subject;
 
-  @Column()
+  @Column({ nullable: true })
   subject_id: string;
 
   @ManyToOne(() => Lecturer, (lecturer) => lecturer.classes)
   @JoinColumn({ name: 'lecturer_id' })
   lecturer: Lecturer;
 
-  @Column()
+  @Column({ nullable: true })
   lecturer_id: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field(() => Int)
   total_student: number;
 
-  @Column()
+  @Column({ nullable: true })
   @Field(() => Int)
   participating_student: number;
 
