@@ -42,4 +42,13 @@ export class PointService {
       { isRaw: true },
     );
   }
+
+  async createPoint(point: number, classId: string) {
+    const newPoint = this.repo.create({
+      point,
+      class_id: classId,
+      max_point: 4,
+    });
+    return this.repo.save(newPoint);
+  }
 }
