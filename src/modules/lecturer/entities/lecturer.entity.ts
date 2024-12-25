@@ -5,15 +5,15 @@ import {
   Entity,
   Column,
   ManyToOne,
-  PrimaryColumn,
   JoinColumn,
   OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @ObjectType()
 @Entity()
 export class Lecturer {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   @Field()
   lecturer_id: string;
 

@@ -49,19 +49,19 @@ export class LecturerDto {
   @Field(() => Number, { nullable: true })
   total_point?: number;
 
-  constructor(entity: Lecturer) {
+  constructor(entity?: Lecturer) {
     if (!entity) return;
-    this.lecturer_id = entity.lecturer_id;
-    this.display_name = entity.display_name;
-    this.mscb = entity.mscb;
-    this.faculty_id = entity.faculty_id;
-    this.username = entity.username;
-    this.learning = entity.learning;
-    this.total_point = entity.total_point;
-    this.position = entity.position;
-    this.ngach = entity.ngach;
-    this.phone = entity.phone;
-    this.email = entity.email;
-    this.faculty = new FacultyDto(entity.faculty);
+    this.lecturer_id = entity?.lecturer_id;
+    this.display_name = entity?.display_name;
+    this.mscb = entity?.mscb;
+    this.faculty_id = entity?.faculty_id;
+    this.username = entity?.username;
+    this.learning = entity?.learning;
+    this.total_point = entity?.total_point;
+    this.position = entity?.position;
+    this.ngach = entity?.ngach;
+    this.phone = entity?.phone;
+    this.email = entity?.email;
+    this.faculty = new FacultyDto(entity?.faculty);
   }
 }
