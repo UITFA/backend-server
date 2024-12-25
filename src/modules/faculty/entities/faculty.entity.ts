@@ -1,16 +1,16 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Lecturer } from '../../lecturer/entities/lecturer.entity';
 import {
   GroupedPoint,
   PaginatedGroupedPoint,
 } from '../../point/dto/PaginatedGroupedPoint';
 import { Subject } from '../../subject/entities/subject.entity';
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
-import { Lecturer } from '../../lecturer/entities/lecturer.entity';
 
 @ObjectType()
 @Entity()
 export class Faculty {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   @Field(() => String)
   faculty_id: string;
 
