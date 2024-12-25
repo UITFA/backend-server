@@ -56,7 +56,7 @@ type Comment {
   aspect: String!
   class: Class
   comment_id: String!
-  display_name: String!
+  content: String!
   sentiment: String!
   type: String!
 }
@@ -122,16 +122,6 @@ type FileEntity {
   size: Int!
 }
 
-input FileRequestDto {
-  buffer: String!
-  encoding: String!
-  filename: String!
-  mimetype: String!
-  originalname: String!
-  path: String!
-  size: Float!
-}
-
 input FilterArgs {
   class_id: String
   class_type: String
@@ -192,8 +182,6 @@ type LecturerDto {
 }
 
 type Mutation {
-  """Upload file"""
-  importFile(file: FileRequestDto!): Boolean!
   login(password: String!, username: String!): AuthDto!
   refreshToken: AuthDto!
   registerUser(user: CreateUserDto!): UserDto!

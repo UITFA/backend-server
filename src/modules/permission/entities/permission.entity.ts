@@ -9,14 +9,14 @@ export class PermissionEntity {
   id: string;
 
   @Field(() => String)
-  @Column()
+  @Column({ nullable: true })
   user_id: string;
 
   @Field(() => String)
-  @Column()
+  @Column({ nullable: true })
   lecture_id: string;
 
   @Field(() => String)
-  @Column()
+  @Column({ nullable: true })
   faculty_id: string;
 }
