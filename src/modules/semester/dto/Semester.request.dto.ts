@@ -6,7 +6,7 @@ export class SemesterRequestDto {
 
   year: string;
 
-  constructor(type: string, year: string) {
+  constructor(type?: string, year?: string) {
     this.type = type;
     this.year = year;
   }

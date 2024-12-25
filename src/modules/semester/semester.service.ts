@@ -7,9 +7,7 @@ import { Semester } from './entities/semester.entity';
 
 @Injectable()
 export class SemesterService {
-  constructor(
-    @InjectRepository(Semester) private repo: Repository<Semester>,
-  ) {}
+  constructor(@InjectRepository(Semester) private repo: Repository<Semester>) {}
 
   async findAll() {
     return (await this.repo.find()).reverse();
@@ -41,11 +39,31 @@ export class SemesterService {
   }
 
   async createSemester(semester: SemesterRequestDto): Promise<SemesterDto> {
-    const semesterEntity = this.repo.create();
-    semesterEntity.display_name = `${semester.type} ${semester.year}`;
-    semesterEntity.type = semester.type;
-    semesterEntity.year = semester.year;
+    const semesterEntity = this.repo.create({
+      display_name: `${semester.type} ${semester.year}`,
+      type: semester.type,
+      year: semester.year,
+    });
     await this.repo.save(semesterEntity);
+    return new SemesterDto(semesterEntity);
+  }
+
+  async findOrCreateSemester(semester: SemesterRequestDto) {
+    const semesterEntity = await this.repo.findOne({
+      where: {
+        year: semester.year,
+        type: semester.type,
+      },
+    });
+    if (!semesterEntity) {
+      const newSemester = this.repo.create({
+        display_name: `${semester.type} ${semester.year}`,
+        type: semester.type,
+        year: semester.year,
+      });
+      await this.repo.save(newSemester);
+      return new SemesterDto(newSemester);
+    }
     return new SemesterDto(semesterEntity);
   }
 }

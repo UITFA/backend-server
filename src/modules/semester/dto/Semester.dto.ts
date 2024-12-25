@@ -11,7 +11,7 @@ export class SemesterDto {
 
   year: string;
 
-  constructor(entity: Semester) {
+  constructor(entity?: Semester) {
     this.id = entity?.semester_id;
     this.displayName = entity?.display_name;
     this.type = entity?.type;

@@ -1,22 +1,22 @@
 import { Field, ObjectType } from '@nestjs/graphql';
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @ObjectType()
 @Entity()
 export class Semester {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   @Field(() => String)
-  semester_id: string;    
+  semester_id: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field()
   display_name: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field({ nullable: true })
   type: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Field({ nullable: true })
   year: string;
 }
