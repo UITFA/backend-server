@@ -6,7 +6,7 @@ import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
-import { CommentDto } from './dto/Comment.dto';
+import { InitCommentRequestDto } from './dto/InitComment.request.dto';
 
 @Injectable()
 export class CommentService {
@@ -63,33 +63,19 @@ export class CommentService {
     return this.repo.findOne({ where: { comment_id: id }, relations: {} });
   }
 
-  async updateSemesterComments(
+  async deleteCommentsByClassIdAndSemesterId(
+    classId: string,
     semesterId: string,
-    newComments: Comment[],
-  ): Promise<void> {
-    await this.repo.delete({ semester_id: semesterId });
-
-    const commentsToInsert = newComments.map((comment) => ({
-      ...comment,
-      semester_id: semesterId,
-    }));
-
-    await this.repo.insert(commentsToInsert);
+  ) {
+    await this.repo.delete({ class_id: classId, semester_id: semesterId });
   }
 
-  async createCommentsForSemester(
-    semesterId: string,
-    comments: CommentDto[],
-  ): Promise<void> {
-    const commentsToInsert = comments.map((comment) => ({
-      ...comment,
-      semester_id: semesterId,
-    }));
-
-    await this.repo.insert(commentsToInsert);
-  }
-
-  async deleteCommentsBySemesterId(semesterId: string): Promise<void> {
-    await this.repo.delete({ semester_id: semesterId });
+  async createComment(commentDto: InitCommentRequestDto) {
+    const comment = this.repo.create({
+      content: commentDto.content,
+      semester_id: commentDto.semesterId,
+      class_id: commentDto.classId,
+    });
+    return this.repo.save(comment);
   }
 }

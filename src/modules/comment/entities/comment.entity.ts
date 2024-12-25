@@ -15,6 +15,9 @@ export class Comment {
   @Field(() => Class, { nullable: true })
   class: Class;
 
+  @Column({ nullable: true })
+  class_id: string;
+
   @Column({ name: 'content' })
   @Field()
   content: string;
