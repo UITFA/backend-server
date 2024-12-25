@@ -11,6 +11,11 @@ import { FileResolver } from './controllers/file.resolver';
 import { FileEntity } from './entities/fileS3.entity';
 import { FileRepository } from './repositories/file.repository';
 import { FileService } from './services/file.service';
+import { FacultyModule } from '../faculty/faculty.module';
+import { SubjectModule } from '../subject/subject.module';
+import { PointModule } from '../point/point.module';
+import { LecturerModule } from '../lecturer/lecturer.module';
+import { ClassModule } from '../class/class.module';
 
 @Module({
   imports: [
@@ -18,6 +23,11 @@ import { FileService } from './services/file.service';
     SharedModule,
     forwardRef(() => SemesterModule),
     forwardRef(() => CommentModule),
+    forwardRef(() => FacultyModule),
+    forwardRef(() => SubjectModule),
+    forwardRef(() => PointModule),
+    forwardRef(() => LecturerModule),
+    forwardRef(() => ClassModule),
   ],
   controllers: [FileController],
   exports: [],

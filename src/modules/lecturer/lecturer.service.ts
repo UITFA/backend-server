@@ -86,4 +86,15 @@ export class LecturerService extends BaseService<Lecturer> {
     }
     return new LecturerDto(lecturer);
   }
+
+  async findOrCreateLecturer(display_name: string, faculty_id: string) {
+    let lecturer = await this.repo.findOne({
+      where: { display_name, faculty_id },
+    });
+    if (!lecturer) {
+      lecturer = this.repo.create({ display_name, faculty_id });
+      return this.repo.save(lecturer);
+    }
+    return new LecturerDto(lecturer);
+  }
 }

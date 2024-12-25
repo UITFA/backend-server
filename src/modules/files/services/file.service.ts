@@ -6,15 +6,29 @@ import {
 } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 
-import { regexSemester } from 'src/common/constants/import-file-config';
+import {
+  regexClassType,
+  regexSemester,
+} from 'src/common/constants/import-file-config';
+import { ClassService } from 'src/modules/class/class.service';
 import { CommentService } from 'src/modules/comment/comment.service';
-import { CommentDto } from 'src/modules/comment/dto/Comment.dto';
+import { InitCommentRequestDto } from 'src/modules/comment/dto/InitComment.request.dto';
+import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
+import { FacultyService } from 'src/modules/faculty/faculty.service';
+import { LecturerService } from 'src/modules/lecturer/lecturer.service';
+import { PointService } from 'src/modules/point/point.service';
 import { SemesterRequestDto } from 'src/modules/semester/dto/Semester.request.dto';
 import { SemesterService } from 'src/modules/semester/semester.service';
+import { SubjectService } from 'src/modules/subject/subject.service';
 import { S3Service } from 'src/shared/services/s3Service.service';
 import { PublicImageDto } from '../dtos/responses/CustomFile.dto';
 import { FileDto } from '../dtos/responses/File.dto';
 import { FileRepository } from '../repositories/file.repository';
+import { SubjectResponseDto } from 'src/modules/subject/dto/Subject.response.dto';
+import { LecturerDto } from 'src/modules/lecturer/dto/lecturer.dto';
+import { ClassResponseDto } from 'src/modules/class/dto/Class.response.dto';
+import { ClassRequestDto } from 'src/modules/class/dto/Class.request.dto';
+import { SemesterDto } from 'src/modules/semester/dto/Semester.dto';
 
 @Injectable()
 export class FileService {
@@ -25,6 +39,11 @@ export class FileService {
     private readonly commentService: CommentService,
     private readonly awsS3Service: S3Service,
     private readonly fileRepository: FileRepository,
+    private readonly facultyService: FacultyService,
+    private readonly lecturerService: LecturerService,
+    private readonly pointService: PointService,
+    private readonly subjectService: SubjectService,
+    private readonly classService: ClassService,
   ) {
     this.logger = new Logger(FileService.name);
   }
@@ -126,36 +145,144 @@ export class FileService {
     }
   }
 
+  private async updateRecord(
+    rowData,
+    colIndexes,
+    semester: SemesterDto,
+    regexClassType: string,
+  ) {
+    const lecturerName = rowData[colIndexes.name] as string;
+    const facultyName = rowData[colIndexes.department] as string;
+    const subject = rowData[colIndexes.subject] as string;
+    const program = rowData[colIndexes.program] as string;
+    const className = rowData[colIndexes.className] as string;
+    const point = rowData[colIndexes.avgScore] as number;
+    const positiveFeedback = rowData[colIndexes.positiveFeedback] as string;
+    const negativeFeedback = rowData[colIndexes.negativeFeedback] as string;
+    const totalStudent = rowData[colIndexes.totalStudent] as string;
+    const participant = rowData[colIndexes.participant];
+    const loop = rowData[colIndexes.loop];
+
+    let faculty: FacultyDto;
+    if (facultyName) {
+      faculty = await this.facultyService.findOrCreateFaculty(facultyName);
+    }
+
+    let subjectDto: SubjectResponseDto;
+    if (subject) {
+      subjectDto = await this.subjectService.findOrCreateSubject(
+        subject,
+        faculty?.faculty_id,
+      );
+    }
+
+    let lecturer: LecturerDto;
+    if (lecturerName) {
+      lecturer = await this.lecturerService.findOrCreateLecturer(
+        lecturerName,
+        faculty?.faculty_id,
+      );
+    }
+    let classDto: ClassResponseDto;
+
+    if (className) {
+      const classRequestDto = new ClassRequestDto(
+        className,
+        program,
+        semester?.id,
+        subjectDto?.subject_id,
+        lecturer?.lecturer_id,
+        totalStudent,
+        participant,
+        regexClassType,
+      );
+
+      classDto =
+        await this.classService.findOrCreateClassByNameAndSemesterId(
+          classRequestDto,
+        );
+    }
+
+    if (point) {
+      await this.pointService.createPoint(point, classDto?.class_id);
+    }
+
+    if (classDto) {
+      await this.commentService.deleteCommentsByClassIdAndSemesterId(
+        classDto?.class_id,
+        semester?.id,
+      );
+
+      for (let i = 0; i < parseInt(loop, 10); i++) {
+        if (positiveFeedback) {
+          const initCommentRequestDto = new InitCommentRequestDto(
+            positiveFeedback,
+            classDto?.class_id,
+            semester?.id,
+          );
+          await this.commentService.createComment(initCommentRequestDto);
+        }
+
+        if (negativeFeedback) {
+          const initCommentRequestDto = new InitCommentRequestDto(
+            negativeFeedback,
+            classDto?.class_id,
+            semester?.id,
+          );
+          await this.commentService.createComment(initCommentRequestDto);
+        }
+      }
+    }
+  }
+
   private async processFile(dataFile: any[]): Promise<void> {
     const firstRow = dataFile[0];
-    const firstColumn = Object.keys(firstRow)[0] as string;
-    const match = regexSemester.exec(firstColumn);
-    console.log('www', firstRow);
-    console.log('bbb', firstColumn);
-    console.log('ccc', match);
+    const semesterMatch = regexSemester.exec(Object.keys(firstRow)[0]);
+    const classType = Object.values(firstRow)[0] as string;
 
-    if (!match) {
-      throw new BadRequestException('Invalid first row');
+    if (!semesterMatch) {
+      throw new BadRequestException('Semester information is invalid');
     }
-
-    const [_, type, year] = match;
-
+    if (!regexClassType.test(classType)) {
+      throw new BadRequestException('Class type does not match');
+    }
+    const [_, type, year] = semesterMatch;
     const semesterRequest = new SemesterRequestDto(type, year);
+    const semester =
+      await this.semesterService.findOrCreateSemester(semesterRequest);
 
-    let semester = await this.semesterService.findSemester(semesterRequest);
+    const headers = dataFile[1];
 
-    if (!semester) {
-      semester = await this.semesterService.createSemester(semesterRequest);
-    } else {
-      await this.commentService.deleteCommentsBySemesterId(semester.id);
+    const rawColumns = Object.values(headers) as string[];
+    const columns = rawColumns.map((col) => col?.trim().toLowerCase());
+
+    const colIndexes = {
+      name: columns.indexOf('họ và tên gv'),
+      department: columns.indexOf('khoa'),
+      subject: columns.indexOf('môn học'),
+      program: columns.indexOf('chương trình'),
+      className: columns.indexOf('lớp'),
+      totalStudent: columns.indexOf('sỉ số'),
+      participant: columns.indexOf('tham gia'),
+      avgScore: columns.indexOf('điểm trung bình'),
+      positiveFeedback: columns.indexOf(
+        'điều anh/ chị hài lòng nhất về hoạt động giảng dạy của gv',
+      ),
+      negativeFeedback: columns.indexOf(
+        'điều anh/ chị không hài lòng nhất về hoạt động giảng dạy của gv',
+      ),
+      loop: columns.indexOf('lượt ý kiến'),
+    };
+
+    if (Object.values(colIndexes).some((index) => index === -1)) {
+      throw new BadRequestException('Missing required columns in the file');
     }
 
-    const comments = dataFile.slice(1).map((row) => {
-      const content = Object.values(row)[0] as string;
-      console.log('Content:', content);
-      return new CommentDto(content);
-    });
+    for (let i = 2; i < dataFile.length; i++) {
+      const row = dataFile[i];
+      const rowData = Object.values(row);
 
-    await this.commentService.createCommentsForSemester(semester.id, comments);
+      await this.updateRecord(rowData, colIndexes, semester, classType);
+    }
   }
 }

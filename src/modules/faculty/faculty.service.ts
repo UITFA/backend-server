@@ -9,6 +9,7 @@ import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { Faculty } from './entities/faculty.entity';
+import { FacultyDto } from './dto/faculty.dto';
 
 @Injectable()
 export class FacultyService extends BaseService<Faculty> {
@@ -60,5 +61,16 @@ export class FacultyService extends BaseService<Faculty> {
       faculty_id: uuidv4(),
     });
     return this.repo.save(defaultFaculty);
+  }
+
+  async findOrCreateFaculty(facultyName: string) {
+    let faculty = await this.repo.findOne({
+      where: { display_name: facultyName },
+    });
+    if (!faculty) {
+      faculty = this.repo.create({ display_name: facultyName });
+      return this.repo.save(faculty);
+    }
+    return new FacultyDto(faculty);
   }
 }
