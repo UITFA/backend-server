@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SemesterDto } from './dto/Semester.dto';
@@ -64,6 +64,6 @@ export class SemesterService {
       await this.repo.save(newSemester);
       return new SemesterDto(newSemester);
     }
-    return new SemesterDto(semesterEntity);
+    throw new BadRequestException('Semester has existed');
   }
 }

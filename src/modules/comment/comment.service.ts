@@ -4,9 +4,9 @@ import { FilterArgs } from 'src/common/args/filter.arg';
 import { PaginationArgs } from 'src/common/args/pagination.arg';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
-import { Repository } from 'typeorm';
-import { Comment } from './entities/comment.entity';
+import { Repository, UpdateResult } from 'typeorm';
 import { InitCommentRequestDto } from './dto/InitComment.request.dto';
+import { Comment } from './entities/comment.entity';
 
 @Injectable()
 export class CommentService {
@@ -63,6 +63,13 @@ export class CommentService {
     return this.repo.findOne({ where: { comment_id: id }, relations: {} });
   }
 
+  async findCommentsByClassIdAndSemesterId(
+    classId: string,
+    semesterId: string,
+  ) {
+    return this.repo.findOneBy({ class_id: classId, semester_id: semesterId });
+  }
+
   async deleteCommentsByClassIdAndSemesterId(
     classId: string,
     semesterId: string,
@@ -70,12 +77,27 @@ export class CommentService {
     await this.repo.delete({ class_id: classId, semester_id: semesterId });
   }
 
-  async createComment(commentDto: InitCommentRequestDto) {
+  async createComment(commentDto: InitCommentRequestDto): Promise<Comment> {
     const comment = this.repo.create({
       content: commentDto.content,
       semester_id: commentDto.semesterId,
       class_id: commentDto.classId,
     });
     return this.repo.save(comment);
+  }
+
+  async updatePredictComment(
+    id,
+    aspect: string,
+    sentiment: string,
+  ): Promise<UpdateResult> {
+    const result = await this.repo.update(
+      { comment_id: id },
+      {
+        aspect: aspect,
+        sentiment: sentiment,
+      },
+    );
+    return result;
   }
 }

@@ -19,17 +19,22 @@ export class CommentDto {
   @Field(() => Int)
   semester_id;
 
+  @Field(() => Int)
+  class_id;
+
   constructor(
     content?: string,
     type?: string,
+    semesterId?: string,
+    classId?: string,
     aspect?: string,
     sentiment?: string,
-    semesterId?: string,
   ) {
     this.content = content;
     this.type = type;
     this.aspect = aspect;
     this.sentiment = sentiment;
     this.semester_id = semesterId;
+    this.class_id = classId;
   }
 }

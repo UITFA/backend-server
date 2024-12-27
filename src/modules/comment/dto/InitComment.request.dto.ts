@@ -11,9 +11,23 @@ export class InitCommentRequestDto {
   @Field()
   classId: string;
 
-  constructor(content?: string, classId?: string, semesterId?: string) {
+  @Field()
+  aspect: string;
+
+  @Field()
+  sentiment: string;
+
+  constructor(
+    content?: string,
+    classId?: string,
+    semesterId?: string,
+    aspect?: string,
+    sentiment?: string,
+  ) {
     this.content = content;
     this.classId = classId;
     this.semesterId = semesterId;
+    this.aspect = aspect;
+    this.sentiment = sentiment;
   }
 }

@@ -22,6 +22,7 @@ import { ApiConfigService } from './shared/services/api-config.service';
 import { ClassModule } from './modules/class/class.module';
 import { SharedModule } from './shared/shared.module';
 import { FileModule } from './modules/files/file.module';
+import { ExternalModule } from './modules/external/external.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { FileModule } from './modules/files/file.module';
     CriteriaModule,
     CommentModule,
     PointModule,
-    FileModule
+    FileModule,
+    ExternalModule
   ],
   controllers: [AppController],
   providers: [AppService],

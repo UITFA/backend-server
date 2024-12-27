@@ -6,30 +6,32 @@ import {
 } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 
+import { destinationFolders } from 'src/common/constants/destination-folders';
 import {
   regexClassType,
   regexSemester,
 } from 'src/common/constants/import-file-config';
 import { ClassService } from 'src/modules/class/class.service';
+import { ClassRequestDto } from 'src/modules/class/dto/Class.request.dto';
+import { ClassResponseDto } from 'src/modules/class/dto/Class.response.dto';
 import { CommentService } from 'src/modules/comment/comment.service';
 import { InitCommentRequestDto } from 'src/modules/comment/dto/InitComment.request.dto';
+import { AsbaService } from 'src/modules/external/asba.service';
 import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
 import { FacultyService } from 'src/modules/faculty/faculty.service';
+import { LecturerDto } from 'src/modules/lecturer/dto/lecturer.dto';
 import { LecturerService } from 'src/modules/lecturer/lecturer.service';
 import { PointService } from 'src/modules/point/point.service';
+import { SemesterDto } from 'src/modules/semester/dto/Semester.dto';
 import { SemesterRequestDto } from 'src/modules/semester/dto/Semester.request.dto';
 import { SemesterService } from 'src/modules/semester/semester.service';
+import { SubjectResponseDto } from 'src/modules/subject/dto/Subject.response.dto';
 import { SubjectService } from 'src/modules/subject/subject.service';
 import { S3Service } from 'src/shared/services/s3Service.service';
+import { Comment } from '../../comment/entities/comment.entity';
 import { PublicImageDto } from '../dtos/responses/CustomFile.dto';
 import { FileDto } from '../dtos/responses/File.dto';
 import { FileRepository } from '../repositories/file.repository';
-import { SubjectResponseDto } from 'src/modules/subject/dto/Subject.response.dto';
-import { LecturerDto } from 'src/modules/lecturer/dto/lecturer.dto';
-import { ClassResponseDto } from 'src/modules/class/dto/Class.response.dto';
-import { ClassRequestDto } from 'src/modules/class/dto/Class.request.dto';
-import { SemesterDto } from 'src/modules/semester/dto/Semester.dto';
-
 @Injectable()
 export class FileService {
   public logger: Logger;
@@ -44,6 +46,7 @@ export class FileService {
     private readonly pointService: PointService,
     private readonly subjectService: SubjectService,
     private readonly classService: ClassService,
+    public readonly asbaService: AsbaService,
   ) {
     this.logger = new Logger(FileService.name);
   }
@@ -70,10 +73,21 @@ export class FileService {
     }
   }
 
+  async importAndPredict(file: Express.Multer.File) {
+    const targetFolder: string = destinationFolders.import;
+
+    const result = await this.uploadAndProcessFile(file, targetFolder);
+    await this.predictFeedback(result);
+    return {
+      message: 'File imported successfully',
+      result,
+    };
+  }
+
   async uploadAndProcessFile(
     file: Express.Multer.File,
     targetFolder: string,
-  ): Promise<void> {
+  ): Promise<Comment[]> {
     const fileDto = new FileDto(
       file.path,
       file.encoding,
@@ -92,13 +106,13 @@ export class FileService {
     this.logger.log(`File uploaded: ${uploadedFile.key}`);
 
     const fileBuffer = await this.awsS3Service.downloadFile(fileKey);
-    await this.processImportFile(fileBuffer, uploadedFile.originalName);
+    return this.processImportFile(fileBuffer, uploadedFile.originalName);
   }
 
   private async processImportFile(
     fileBuffer: Buffer,
     fileName: string,
-  ): Promise<void> {
+  ): Promise<Comment[]> {
     try {
       const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
@@ -115,7 +129,7 @@ export class FileService {
         throw new BadRequestException('Invalid file');
       }
 
-      await this.processFile(rawData);
+      return this.processFile(rawData);
     } catch (error) {
       this.logger.error(`Error when hadling ${fileName}: ${error.message}`);
       throw new BadRequestException('Error when handle file');
@@ -150,15 +164,13 @@ export class FileService {
     colIndexes,
     semester: SemesterDto,
     regexClassType: string,
-  ) {
+  ): Promise<Comment[]> {
     const lecturerName = rowData[colIndexes.name] as string;
     const facultyName = rowData[colIndexes.department] as string;
     const subject = rowData[colIndexes.subject] as string;
     const program = rowData[colIndexes.program] as string;
     const className = rowData[colIndexes.className] as string;
     const point = rowData[colIndexes.avgScore] as number;
-    const positiveFeedback = rowData[colIndexes.positiveFeedback] as string;
-    const negativeFeedback = rowData[colIndexes.negativeFeedback] as string;
     const totalStudent = rowData[colIndexes.totalStudent] as string;
     const participant = rowData[colIndexes.participant];
     const loop = rowData[colIndexes.loop];
@@ -206,22 +218,28 @@ export class FileService {
     if (point) {
       await this.pointService.createPoint(point, classDto?.class_id);
     }
+    const commentsToPredict = [];
 
     if (classDto) {
-      await this.commentService.deleteCommentsByClassIdAndSemesterId(
-        classDto?.class_id,
-        semester?.id,
-      );
-
       for (let i = 0; i < parseInt(loop, 10); i++) {
+        const positiveFeedback = rowData[
+          colIndexes.positiveFeedback + i
+        ] as string;
+
         if (positiveFeedback) {
           const initCommentRequestDto = new InitCommentRequestDto(
             positiveFeedback,
             classDto?.class_id,
             semester?.id,
           );
-          await this.commentService.createComment(initCommentRequestDto);
+          const newComment = await this.commentService.createComment(
+            initCommentRequestDto,
+          );
+          commentsToPredict.push(newComment);
         }
+        const negativeFeedback = rowData[
+          colIndexes.negativeFeedback + i
+        ] as string;
 
         if (negativeFeedback) {
           const initCommentRequestDto = new InitCommentRequestDto(
@@ -229,13 +247,17 @@ export class FileService {
             classDto?.class_id,
             semester?.id,
           );
-          await this.commentService.createComment(initCommentRequestDto);
+          const newComment = await this.commentService.createComment(
+            initCommentRequestDto,
+          );
+          commentsToPredict.push(newComment);
         }
       }
     }
+    return commentsToPredict;
   }
 
-  private async processFile(dataFile: any[]): Promise<void> {
+  private async processFile(dataFile: any[]): Promise<Comment[]> {
     const firstRow = dataFile[0];
     const semesterMatch = regexSemester.exec(Object.keys(firstRow)[0]);
     const classType = Object.values(firstRow)[0] as string;
@@ -277,12 +299,42 @@ export class FileService {
     if (Object.values(colIndexes).some((index) => index === -1)) {
       throw new BadRequestException('Missing required columns in the file');
     }
-
+    const predictList: Comment[] = [];
     for (let i = 2; i < dataFile.length; i++) {
       const row = dataFile[i];
       const rowData = Object.values(row);
 
-      await this.updateRecord(rowData, colIndexes, semester, classType);
+      predictList.push(
+        ...(await this.updateRecord(rowData, colIndexes, semester, classType)),
+      );
+    }
+
+    return predictList;
+  }
+
+  async predictFeedback(comments: Comment[]) {
+    for (const comment of comments) {
+      if (!comment?.content) continue;
+      const result = await this.asbaService.predict(comment.content);
+      let foundValidAspect = false;
+      for (const key in result.prediction) {
+        if (result.prediction[key] != null) {
+          await this.commentService.updatePredictComment(
+            comment.comment_id,
+            key,
+            result.prediction[key],
+          );
+          foundValidAspect = true;
+          break;
+        }
+      }
+      if (!foundValidAspect) {
+        await this.commentService.updatePredictComment(
+          comment.comment_id,
+          'OTHERS',
+          'neutral',
+        );
+      }
     }
   }
 }

@@ -5,7 +5,6 @@ import { isNil } from 'lodash';
 import { SnakeNamingStrategy } from 'src/common/snake-naming.strategy';
 import { UserSubscriber } from 'src/entity-subscribers/user-subscriber';
 
-
 @Injectable()
 export class ApiConfigService {
   constructor(private configService: ConfigService) {}
@@ -111,6 +110,12 @@ export class ApiConfigService {
       bucketName: this.getString('AWS_S3_BUCKET_NAME'),
       accessKeyId: this.getString('AWS_S3_ACCESS_KEY_ID'),
       secretAccessKeyId: this.getString('AWS_S3_SECRET_ACCESS_KEY'),
+    };
+  }
+
+  get absaConfig() {
+    return {
+      port: this.getString('MODEL_URL'),
     };
   }
 }
