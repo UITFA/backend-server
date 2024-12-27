@@ -61,7 +61,6 @@ export class AuthService {
 
       const newUser = await this.userService.createDefault({
         ...userData,
-        user_id: uuidv4(),
         displayName: userData.fullname,
         id: userData.id,
         role: role ? role : Role.LECTURER,
@@ -107,7 +106,7 @@ export class AuthService {
         );
 
         if (isMatch) {
-          return {user};
+          return { user };
         }
         return { user };
       }

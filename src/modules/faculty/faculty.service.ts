@@ -7,9 +7,8 @@ import { BaseService } from 'src/common/services/BaseService';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import { Faculty } from './entities/faculty.entity';
 import { FacultyDto } from './dto/faculty.dto';
+import { Faculty } from './entities/faculty.entity';
 
 @Injectable()
 export class FacultyService extends BaseService<Faculty> {
@@ -58,7 +57,6 @@ export class FacultyService extends BaseService<Faculty> {
     const defaultFaculty = this.repo.create({
       display_name: 'công nghệ phần mềm',
       full_name: 'công nghệ phần mềm',
-      faculty_id: uuidv4(),
     });
     return this.repo.save(defaultFaculty);
   }

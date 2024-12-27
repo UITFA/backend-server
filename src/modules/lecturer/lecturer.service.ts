@@ -5,7 +5,6 @@ import { BaseService } from 'src/common/services/BaseService';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
 import { FacultyService } from '../faculty/faculty.service';
 import { LecturerDto } from './dto/lecturer.dto';
 import { Lecturer } from './entities/lecturer.entity';
@@ -78,7 +77,6 @@ export class LecturerService extends BaseService<Lecturer> {
     if (!lecturer) {
       const defaultLecturer = this.repo.create({
         display_name: name,
-        lecturer_id: uuidv4(),
         faculty: await this.facultyService.createDefault(),
       });
       await this.repo.save(defaultLecturer);

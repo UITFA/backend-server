@@ -76,7 +76,7 @@ export class UserDto {
   city?: string;
 
   @Field(() => String, { nullable: true })
-  country: string;
+  country?: string;
 
   @Field(() => String, { nullable: true })
   profileimageurlsmall?: string;
@@ -92,32 +92,32 @@ export class UserDto {
 
   constructor(entity: UserEntity) {
     if (!entity) return;
-    this.role = Role[entity.role as keyof typeof Role];
-    this.displayName = entity.displayName;
-    this.id = entity.id;
-    this.faculty = new FacultyDto(entity.faculty);
-    this.lecturer = new LecturerDto(entity.lecturer);
-    this.user_id = entity.user_id;
-    this.isDefault = entity.isDefault;
-    this.username = entity.username;
-    this.fullname = entity.fullname;
-    this.password = entity.password;
-    this.email = entity.email;
-    this.auth = entity.auth;
-    this.city = entity.city;
-    this.confirmed = entity.confirmed;
-    this.country = entity.country;
-    this.department = entity.department;
-    this.firstaccess = entity.firstaccess;
-    this.lastaccess = entity.lastaccess;
-    this.lang = entity.lang;
-    this.mailformat = entity.mailformat;
-    this.profileimageurl = entity.profileimageurl;
-    this.profileimageurlsmall = entity.profileimageurlsmall;
-    this.suspended = entity.suspended;
-    this.theme = entity.theme;
-    this.timezone = entity.timezone;
-    this.preferences = entity.preferences;
-    this.token = entity.token;
+    this.role = Role[entity?.role as keyof typeof Role];
+    this.displayName = entity?.displayName;
+    this.id = entity?.id;
+    this.faculty = new FacultyDto(entity?.faculty);
+    this.lecturer = new LecturerDto(entity?.lecturer);
+    this.user_id = entity?.user_id;
+    this.isDefault = entity?.isDefault;
+    this.username = entity?.username;
+    this.fullname = entity?.fullname;
+    this.password = entity?.password;
+    this.email = entity?.email;
+    this.auth = entity?.auth;
+    this.city = entity?.city;
+    this.confirmed = entity?.confirmed;
+    this.country = entity?.country;
+    this.department = entity?.department;
+    this.firstaccess = entity?.firstaccess;
+    this.lastaccess = entity?.lastaccess;
+    this.lang = entity?.lang;
+    this.mailformat = entity?.mailformat;
+    this.profileimageurl = entity?.profileimageurl;
+    this.profileimageurlsmall = entity?.profileimageurlsmall;
+    this.suspended = entity?.suspended;
+    this.theme = entity?.theme;
+    this.timezone = entity?.timezone;
+    this.preferences = entity?.preferences;
+    this.token = entity?.token;
   }
 }

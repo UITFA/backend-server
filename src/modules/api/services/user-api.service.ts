@@ -26,10 +26,6 @@ export class UserApiService {
     }
     console.log(JSON.stringify(data));
 
-    // return new UserDto({
-    //   ...data[0],
-    //   token,
-    // });
     return { ...data[0], token };
   }
 }
