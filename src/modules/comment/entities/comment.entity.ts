@@ -1,6 +1,12 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { Class } from '../../class/entities/class.entity';
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Semester } from 'src/modules/semester/entities/semester.entity';
 
 @ObjectType()
@@ -18,20 +24,16 @@ export class Comment {
   @Column({ nullable: true })
   class_id: string;
 
-  @Column({ name: 'content' })
-  @Field()
-  content: string;
+  @Column({ name: 'content', nullable: true })
+  @Field({ nullable: true })
+  display_name: string;
 
   @Column({ nullable: true })
-  @Field(() => String)
-  type: string;
-
-  @Column({ nullable: true })
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   aspect: string;
 
   @Column({ nullable: true })
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   sentiment: string;
 
   @ManyToOne(() => Semester)

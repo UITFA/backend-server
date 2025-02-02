@@ -9,6 +9,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Gender } from 'src/common/constants/gender';
 
 @ObjectType()
 @Entity()
@@ -47,8 +48,8 @@ export class Lecturer {
   birth_date?: Date;
 
   @Column({ nullable: true })
-  @Field(() => Boolean, { nullable: true })
-  gender?: boolean;
+  @Field({ nullable: true })
+  gender?: Gender;
 
   @Column({ nullable: true })
   @Field({ nullable: true })
@@ -74,6 +75,7 @@ export class Lecturer {
   // @Field(() => [Class], { nullable: true })
   classes?: Class[];
 
+  @Column({ nullable: true })
   @Field({ nullable: true })
   total_point?: number;
 }

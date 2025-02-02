@@ -1,19 +1,20 @@
 import { Field, ObjectType } from '@nestjs/graphql';
+import { Gender } from 'src/common/constants/gender';
 import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
 
 @ObjectType()
 export class UpdateLecturerDto {
   @Field(() => String, { nullable: true })
-  lecturer_id?: string;
+  id?: string;
 
   @Field(() => String, { nullable: true })
-  display_name?: string;
+  displayName?: string;
 
   @Field(() => String, { nullable: true })
   mscb?: string;
 
   @Field(() => String, { nullable: true })
-  faculty_id?: string;
+  facultyId?: string;
 
   @Field(() => FacultyDto, { nullable: true })
   faculty?: FacultyDto;
@@ -22,13 +23,13 @@ export class UpdateLecturerDto {
   username?: string;
 
   @Field(() => String, { nullable: true })
-  learning_position?: string;
+  learningPosition?: string;
 
   @Field(() => Date, { nullable: true })
-  birth_date?: Date;
+  dateOfBirth?: Date;
 
-  @Field(() => Boolean, { nullable: true })
-  gender?: boolean;
+  @Field(() => Gender, { nullable: true })
+  gender?: Gender;
 
   @Field(() => String, { nullable: true })
   learning?: string;
@@ -46,5 +47,39 @@ export class UpdateLecturerDto {
   position?: string;
 
   @Field(() => Number, { nullable: true })
-  total_point?: number;
+  totalPoint?: number;
+
+  constructor(
+    displayName?: string,
+    mscb?: string,
+    username?: string,
+    learningPosition?: string,
+    dateOfBirth?: Date,
+    gender?: Gender,
+    email?: string,
+    phone?: string,
+    ngach?: string,
+    position?: string,
+    facultyId?: string,
+    faculty?: FacultyDto,
+    id?: string,
+    totalPoint?: number,
+    learning?: string,
+  ) {
+    this.dateOfBirth = dateOfBirth;
+    this.displayName = displayName;
+    this.email = email;
+    this.faculty = faculty;
+    this.facultyId = facultyId;
+    this.gender = gender;
+    this.id = id;
+    this.learning = learning;
+    this.learningPosition = learningPosition;
+    this.mscb = mscb;
+    this.ngach = ngach;
+    this.phone = phone;
+    this.totalPoint = totalPoint;
+    this.username = username;
+    this.position = position;
+  }
 }

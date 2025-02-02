@@ -32,6 +32,10 @@ import { Comment } from '../../comment/entities/comment.entity';
 import { PublicImageDto } from '../dtos/responses/CustomFile.dto';
 import { FileDto } from '../dtos/responses/File.dto';
 import { FileRepository } from '../repositories/file.repository';
+import { UpdateLecturerDto } from 'src/modules/lecturer/dto/request/update-lecturer.dto';
+import { Gender } from 'src/common/constants/gender';
+import * as dayjs from 'dayjs';
+
 @Injectable()
 export class FileService {
   public logger: Logger;
@@ -159,7 +163,7 @@ export class FileService {
     }
   }
 
-  private async updateRecord(
+  private async updateCommentRecord(
     rowData,
     colIndexes,
     semester: SemesterDto,
@@ -276,7 +280,9 @@ export class FileService {
     const headers = dataFile[1];
 
     const rawColumns = Object.values(headers) as string[];
-    const columns = rawColumns.map((col) => col?.trim().toLowerCase());
+    const columns = rawColumns.map((col) =>
+      col ? String(col).trim().toLowerCase() : '',
+    );
 
     const colIndexes = {
       name: columns.indexOf('họ và tên gv'),
@@ -305,7 +311,12 @@ export class FileService {
       const rowData = Object.values(row);
 
       predictList.push(
-        ...(await this.updateRecord(rowData, colIndexes, semester, classType)),
+        ...(await this.updateCommentRecord(
+          rowData,
+          colIndexes,
+          semester,
+          classType,
+        )),
       );
     }
 
@@ -366,7 +377,6 @@ export class FileService {
     const targetFolder: string = destinationFolders.lecturer;
 
     const result = await this.uploadAndProcessLecturerFile(file, targetFolder);
-    await this.predictFeedback(result);
     return {
       message: 'File imported successfully',
       result,
@@ -376,7 +386,7 @@ export class FileService {
   async uploadAndProcessLecturerFile(
     file: Express.Multer.File,
     targetFolder: string,
-  ): Promise<Comment[]> {
+  ) {
     const fileDto = new FileDto(
       file.path,
       file.encoding,
@@ -404,7 +414,7 @@ export class FileService {
   private async processImportLecturerFile(
     fileBuffer: Buffer,
     fileName: string,
-  ): Promise<Comment[]> {
+  ) {
     try {
       const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
@@ -433,76 +443,78 @@ export class FileService {
       this.logger.error('Data file is empty or not an array');
       return false;
     }
-
-    const firstRow = dataFile[0];
-    const firstColumnKey = Object.keys(firstRow)[0];
-    const cleanedKey = firstColumnKey.replace(/[–—]/g, '-');
-
-    if (
-      typeof cleanedKey === 'string' &&
-      regexSemester.test(cleanedKey.trim())
-    ) {
-      return true;
-    } else {
-      this.logger.error(
-        `First row name does not match regex: ${firstColumnKey}`,
-      );
-      return false;
-    }
+    return true;
   }
 
-  private async processLecturerFile(dataFile: any[]): Promise<Comment[]> {
-    const firstRow = dataFile[0];
-    const semesterMatch = regexSemester.exec(Object.keys(firstRow)[0]);
-    const classType = Object.values(firstRow)[0] as string;
+  private async processLecturerFile(dataFile: any[]) {
+    const headers = dataFile[0];
+    const rawColumns = Object.keys(headers);
+    const columns = rawColumns.map((col) =>
+      col !== null && col !== undefined ? String(col).trim().toLowerCase() : '',
+    );
 
-    if (!semesterMatch) {
-      throw new BadRequestException('Semester information is invalid');
-    }
-    if (!regexClassType.test(classType)) {
-      throw new BadRequestException('Class type does not match');
-    }
-    const [_, type, year] = semesterMatch;
-    const semesterRequest = new SemesterRequestDto(type, year);
-    const semester =
-      await this.semesterService.findOrCreateSemester(semesterRequest);
-
-    const headers = dataFile[1];
-
-    const rawColumns = Object.values(headers) as string[];
-    const columns = rawColumns.map((col) => col?.trim().toLowerCase());
 
     const colIndexes = {
-      name: columns.indexOf('họ và tên gv'),
-      department: columns.indexOf('khoa'),
-      subject: columns.indexOf('môn học'),
-      program: columns.indexOf('chương trình'),
-      className: columns.indexOf('lớp'),
-      totalStudent: columns.indexOf('sỉ số'),
-      participant: columns.indexOf('tham gia'),
-      avgScore: columns.indexOf('điểm trung bình'),
-      positiveFeedback: columns.indexOf(
-        'điều anh/ chị hài lòng nhất về hoạt động giảng dạy của gv',
-      ),
-      negativeFeedback: columns.indexOf(
-        'điều anh/ chị không hài lòng nhất về hoạt động giảng dạy của gv',
-      ),
-      loop: columns.indexOf('lượt ý kiến'),
+      mscb: columns.indexOf('mã gv'),
+      username: columns.indexOf('username'),
+      displayName: columns.indexOf('họ tên'),
+      dateOfBirth: columns.indexOf('ngày sinh'),
+      gender: columns.indexOf('giới tính'),
+      learningPosition: columns.indexOf('học vị'),
+      facultyName: columns.indexOf('đơn vị'),
+      email: columns.indexOf('email'),
+      phone: columns.indexOf('điện thoại'),
+      ngach: columns.indexOf('ngạch'),
+      position: columns.indexOf('chức vụ'),
     };
 
     if (Object.values(colIndexes).some((index) => index === -1)) {
       throw new BadRequestException('Missing required columns in the file');
     }
-    const predictList: Comment[] = [];
-    for (let i = 2; i < dataFile.length; i++) {
+    for (let i = 1; i < dataFile.length; i++) {
       const row = dataFile[i];
       const rowData = Object.values(row);
 
-      predictList.push(
-        ...(await this.updateRecord(rowData, colIndexes, semester, classType)),
-      );
+      await this.updateLecturerRecord(rowData, colIndexes);
+    }
+  }
+
+  private async updateLecturerRecord(rowData, colIndexes) {
+    const mscb = rowData[colIndexes.mscb] as string;
+    const username = rowData[colIndexes.username] as string;
+    const lecturerName = rowData[colIndexes.displayName] as string;
+    const dateOfBirth = rowData[colIndexes.dateOfBirth] as string;
+    const gender = rowData[colIndexes.gender] as string;
+    const learningPosition = rowData[colIndexes.learningPosition] as string;
+    const facultyName = rowData[colIndexes.facultyName];
+    const email = rowData[colIndexes.email];
+    const phone = rowData[colIndexes.phone];
+    const ngach = rowData[colIndexes.ngach];
+    const position = rowData[colIndexes.position];
+
+    let faculty: FacultyDto;
+    if (facultyName) {
+      faculty = await this.facultyService.findOrCreateFaculty(facultyName);
     }
 
-    return predictList;
+    if (lecturerName) {
+      const [day, month, year] = dateOfBirth.split('-').map(Number);
+      const parsedDate = new Date(year, month - 1, day);
+
+      const updateLecturerDto = new UpdateLecturerDto(
+        lecturerName,
+        mscb,
+        username,
+        learningPosition,
+        parsedDate,
+        gender == 'Nam' ? Gender.M : Gender.F,
+        email,
+        phone,
+        ngach,
+        position,
+      );
+
+      await this.lecturerService.updatOrCreateLecturer(updateLecturerDto);
+    }
   }
 }

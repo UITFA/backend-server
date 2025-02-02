@@ -7,6 +7,7 @@ import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
 import { FacultyService } from '../faculty/faculty.service';
 import { LecturerDto } from './dto/lecturer.dto';
+import { UpdateLecturerDto } from './dto/request/update-lecturer.dto';
 import { Lecturer } from './entities/lecturer.entity';
 @Injectable()
 export class LecturerService extends BaseService<Lecturer> {
@@ -91,8 +92,36 @@ export class LecturerService extends BaseService<Lecturer> {
     });
     if (!lecturer) {
       lecturer = this.repo.create({ display_name, faculty_id });
-      return this.repo.save(lecturer);
+      this.repo.save(lecturer);
     }
     return new LecturerDto(lecturer);
+  }
+
+  async updatOrCreateLecturer(updateLecturerDto: UpdateLecturerDto) {
+    let lecturer = await this.repo.findOne({
+      where: { display_name: updateLecturerDto.displayName },
+    });
+
+    if (!lecturer) {
+      lecturer = this.repo.create({
+        display_name: updateLecturerDto.displayName,
+      });
+    }
+
+    lecturer.birth_date = updateLecturerDto.dateOfBirth;
+    lecturer.display_name = updateLecturerDto.displayName;
+    lecturer.email = updateLecturerDto.email;
+    lecturer.gender = updateLecturerDto.gender;
+    lecturer.learning = updateLecturerDto.learning;
+    lecturer.learning_position = updateLecturerDto.learningPosition;
+    lecturer.mscb = updateLecturerDto.mscb;
+    lecturer.ngach = updateLecturerDto.ngach;
+    lecturer.phone = updateLecturerDto.phone;
+    lecturer.total_point = updateLecturerDto.totalPoint;
+    lecturer.username = updateLecturerDto.username;
+    lecturer.position = updateLecturerDto.position;
+    lecturer.faculty_id = updateLecturerDto.facultyId;
+
+    await this.repo.save(lecturer);
   }
 }

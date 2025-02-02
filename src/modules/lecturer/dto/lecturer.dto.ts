@@ -1,6 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
 import { Lecturer } from '../entities/lecturer.entity';
+import { Gender } from 'src/common/constants/gender';
 
 @ObjectType()
 export class LecturerDto {
@@ -28,8 +29,8 @@ export class LecturerDto {
   @Field(() => Date, { nullable: true })
   birth_date?: Date;
 
-  @Field(() => Boolean, { nullable: true })
-  gender?: boolean;
+  @Field(() => String, { nullable: true })
+  gender?: Gender;
 
   @Field(() => String, { nullable: true })
   learning?: string;
