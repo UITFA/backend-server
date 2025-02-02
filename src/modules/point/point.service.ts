@@ -51,4 +51,14 @@ export class PointService {
     });
     return this.repo.save(newPoint);
   }
+
+  public async calculateAveragePointForClasses(classIds): Promise<number> {
+    const result = await this.repo
+      .createQueryBuilder('point')
+      .select('AVG(point.point)', 'average')
+      .where('point.class_id IN (:...classIds)', { classIds })
+      .getRawOne();
+
+    return parseFloat(result.average) || 0;
+  }
 }

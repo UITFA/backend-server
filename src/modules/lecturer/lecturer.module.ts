@@ -4,7 +4,7 @@ import { ClassModule } from '../../modules/class/class.module';
 import { FacultyModule } from '../faculty/faculty.module';
 import { PointModule } from '../point/point.module';
 import { Lecturer } from './entities/lecturer.entity';
-import { LecturerResolver } from './lecturer.resolver';
+import { LecturerResolver } from './controllers/lecturer.resolver';
 import { LecturerService } from './lecturer.service';
 
 @Module({

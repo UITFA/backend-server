@@ -50,7 +50,7 @@ export class SubjectService extends BaseService<Subject> {
     });
   }
 
-  async findOrCreateSubject(display_name: string, faculty_id:string) {
+  async findOrCreateSubject(display_name: string, faculty_id: string) {
     let subject = await this.repo.findOne({
       where: { display_name, faculty_id },
     });
@@ -59,5 +59,16 @@ export class SubjectService extends BaseService<Subject> {
       return this.repo.save(subject);
     }
     return new SubjectResponseDto(subject);
+  }
+
+  public async updateTotalPoint(
+    subjectId: string,
+    totalPoint: number,
+  ): Promise<void> {
+    await this.repo.update(subjectId, { total_point: totalPoint });
+  }
+
+  public async findAllSubjects(): Promise<SubjectResponseDto[]> {
+    return this.repo.find();
   }
 }

@@ -74,9 +74,9 @@ export class FileService {
   }
 
   async importAndPredict(file: Express.Multer.File) {
-    const targetFolder: string = destinationFolders.import;
+    const targetFolder: string = destinationFolders.comment;
 
-    const result = await this.uploadAndProcessFile(file, targetFolder);
+    const result = await this.uploadAndProcessCommentFile(file, targetFolder);
     await this.predictFeedback(result);
     return {
       message: 'File imported successfully',
@@ -84,7 +84,7 @@ export class FileService {
     };
   }
 
-  async uploadAndProcessFile(
+  async uploadAndProcessCommentFile(
     file: Express.Multer.File,
     targetFolder: string,
   ): Promise<Comment[]> {
@@ -106,10 +106,10 @@ export class FileService {
     this.logger.log(`File uploaded: ${uploadedFile.key}`);
 
     const fileBuffer = await this.awsS3Service.downloadFile(fileKey);
-    return this.processImportFile(fileBuffer, uploadedFile.originalName);
+    return this.processImportCommentFile(fileBuffer, uploadedFile.originalName);
   }
 
-  private async processImportFile(
+  private async processImportCommentFile(
     fileBuffer: Buffer,
     fileName: string,
   ): Promise<Comment[]> {
@@ -124,19 +124,19 @@ export class FileService {
         throw new BadRequestException('No data in file');
       }
 
-      const isValid = this.validateFile(rawData);
+      const isValid = this.validateCommentFile(rawData);
       if (!isValid) {
         throw new BadRequestException('Invalid file');
       }
 
-      return this.processFile(rawData);
+      return this.processCommentFile(rawData);
     } catch (error) {
       this.logger.error(`Error when hadling ${fileName}: ${error.message}`);
       throw new BadRequestException('Error when handle file');
     }
   }
 
-  private validateFile(dataFile: any[]): boolean {
+  private validateCommentFile(dataFile: any[]): boolean {
     if (!Array.isArray(dataFile) || dataFile.length === 0) {
       this.logger.error('Data file is empty or not an array');
       return false;
@@ -163,7 +163,7 @@ export class FileService {
     rowData,
     colIndexes,
     semester: SemesterDto,
-    regexClassType: string,
+    classType: string,
   ): Promise<Comment[]> {
     const lecturerName = rowData[colIndexes.name] as string;
     const facultyName = rowData[colIndexes.department] as string;
@@ -206,7 +206,7 @@ export class FileService {
         lecturer?.lecturer_id,
         totalStudent,
         participant,
-        regexClassType,
+        classType,
       );
 
       classDto =
@@ -257,7 +257,201 @@ export class FileService {
     return commentsToPredict;
   }
 
-  private async processFile(dataFile: any[]): Promise<Comment[]> {
+  private async processCommentFile(dataFile: any[]): Promise<Comment[]> {
+    const firstRow = dataFile[0];
+    const semesterMatch = regexSemester.exec(Object.keys(firstRow)[0]);
+    const classType = Object.values(firstRow)[0] as string;
+
+    if (!semesterMatch) {
+      throw new BadRequestException('Semester information is invalid');
+    }
+    if (!regexClassType.test(classType)) {
+      throw new BadRequestException('Class type does not match');
+    }
+    const [_, type, year] = semesterMatch;
+    const semesterRequest = new SemesterRequestDto(type, year);
+    const semester =
+      await this.semesterService.findOrCreateSemester(semesterRequest);
+
+    const headers = dataFile[1];
+
+    const rawColumns = Object.values(headers) as string[];
+    const columns = rawColumns.map((col) => col?.trim().toLowerCase());
+
+    const colIndexes = {
+      name: columns.indexOf('họ và tên gv'),
+      department: columns.indexOf('khoa'),
+      subject: columns.indexOf('môn học'),
+      program: columns.indexOf('chương trình'),
+      className: columns.indexOf('lớp'),
+      totalStudent: columns.indexOf('sỉ số'),
+      participant: columns.indexOf('tham gia'),
+      avgScore: columns.indexOf('điểm trung bình'),
+      positiveFeedback: columns.indexOf(
+        'điều anh/ chị hài lòng nhất về hoạt động giảng dạy của gv',
+      ),
+      negativeFeedback: columns.indexOf(
+        'điều anh/ chị không hài lòng nhất về hoạt động giảng dạy của gv',
+      ),
+      loop: columns.indexOf('lượt ý kiến'),
+    };
+
+    if (Object.values(colIndexes).some((index) => index === -1)) {
+      throw new BadRequestException('Missing required columns in the file');
+    }
+    const predictList: Comment[] = [];
+    for (let i = 2; i < dataFile.length; i++) {
+      const row = dataFile[i];
+      const rowData = Object.values(row);
+
+      predictList.push(
+        ...(await this.updateRecord(rowData, colIndexes, semester, classType)),
+      );
+    }
+
+    await this.calculateAndSaveTotalPoint();
+
+    return predictList;
+  }
+
+  private async calculateAndSaveTotalPoint(): Promise<void> {
+    const subjects = await this.subjectService.findAllSubjects();
+
+    for (const subject of subjects) {
+      const classes = await this.classService.findClassesBySubjectId(
+        subject.subject_id,
+      );
+
+      if (classes.length > 0) {
+        const totalPoint =
+          await this.pointService.calculateAveragePointForClasses(
+            classes.map((cls) => cls.class_id),
+          );
+
+        await this.subjectService.updateTotalPoint(
+          subject.subject_id,
+          totalPoint,
+        );
+      }
+    }
+  }
+
+  async predictFeedback(comments: Comment[]) {
+    for (const comment of comments) {
+      if (!comment?.display_name) continue;
+      const result = await this.asbaService.predict(comment.display_name);
+      let foundValidAspect = false;
+      for (const key in result.prediction) {
+        if (result.prediction[key] != null) {
+          await this.commentService.updatePredictComment(
+            comment.comment_id,
+            key,
+            result.prediction[key],
+          );
+          foundValidAspect = true;
+          break;
+        }
+      }
+      if (!foundValidAspect) {
+        await this.commentService.updatePredictComment(
+          comment.comment_id,
+          'OTHERS',
+          'neutral',
+        );
+      }
+    }
+  }
+
+  async importLecturer(file: Express.Multer.File) {
+    const targetFolder: string = destinationFolders.lecturer;
+
+    const result = await this.uploadAndProcessLecturerFile(file, targetFolder);
+    await this.predictFeedback(result);
+    return {
+      message: 'File imported successfully',
+      result,
+    };
+  }
+
+  async uploadAndProcessLecturerFile(
+    file: Express.Multer.File,
+    targetFolder: string,
+  ): Promise<Comment[]> {
+    const fileDto = new FileDto(
+      file.path,
+      file.encoding,
+      file.filename,
+      file.mimetype,
+      file.originalname,
+      file.size,
+      file.buffer,
+    );
+    const fileKey = await this.awsS3Service.uploadFile(fileDto, targetFolder);
+
+    const uploadedFile = await this.fileRepository.createFile(
+      new FileDto(fileKey, file.mimetype, file.originalname),
+    );
+
+    this.logger.log(`File uploaded: ${uploadedFile.key}`);
+
+    const fileBuffer = await this.awsS3Service.downloadFile(fileKey);
+    return this.processImportLecturerFile(
+      fileBuffer,
+      uploadedFile.originalName,
+    );
+  }
+
+  private async processImportLecturerFile(
+    fileBuffer: Buffer,
+    fileName: string,
+  ): Promise<Comment[]> {
+    try {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+        defval: null,
+      });
+
+      if (rawData.length === 0) {
+        throw new BadRequestException('No data in file');
+      }
+
+      const isValid = this.validateLecturerFile(rawData);
+      if (!isValid) {
+        throw new BadRequestException('Invalid file');
+      }
+
+      return this.processLecturerFile(rawData);
+    } catch (error) {
+      this.logger.error(`Error when hadling ${fileName}: ${error.message}`);
+      throw new BadRequestException('Error when handle file');
+    }
+  }
+
+  private validateLecturerFile(dataFile: any[]): boolean {
+    if (!Array.isArray(dataFile) || dataFile.length === 0) {
+      this.logger.error('Data file is empty or not an array');
+      return false;
+    }
+
+    const firstRow = dataFile[0];
+    const firstColumnKey = Object.keys(firstRow)[0];
+    const cleanedKey = firstColumnKey.replace(/[–—]/g, '-');
+
+    if (
+      typeof cleanedKey === 'string' &&
+      regexSemester.test(cleanedKey.trim())
+    ) {
+      return true;
+    } else {
+      this.logger.error(
+        `First row name does not match regex: ${firstColumnKey}`,
+      );
+      return false;
+    }
+  }
+
+  private async processLecturerFile(dataFile: any[]): Promise<Comment[]> {
     const firstRow = dataFile[0];
     const semesterMatch = regexSemester.exec(Object.keys(firstRow)[0]);
     const classType = Object.values(firstRow)[0] as string;
@@ -310,31 +504,5 @@ export class FileService {
     }
 
     return predictList;
-  }
-
-  async predictFeedback(comments: Comment[]) {
-    for (const comment of comments) {
-      if (!comment?.content) continue;
-      const result = await this.asbaService.predict(comment.content);
-      let foundValidAspect = false;
-      for (const key in result.prediction) {
-        if (result.prediction[key] != null) {
-          await this.commentService.updatePredictComment(
-            comment.comment_id,
-            key,
-            result.prediction[key],
-          );
-          foundValidAspect = true;
-          break;
-        }
-      }
-      if (!foundValidAspect) {
-        await this.commentService.updatePredictComment(
-          comment.comment_id,
-          'OTHERS',
-          'neutral',
-        );
-      }
-    }
   }
 }

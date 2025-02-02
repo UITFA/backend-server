@@ -121,7 +121,7 @@ export class S3Service {
 
       return buffer;
     } catch (error) {
-      throw new BadRequestException(`Lỗi tải file từ S3: ${error.message}`);
+      throw new BadRequestException(`Error when downloading file from S3: ${error.message}`);
     }
   }
 

@@ -4,6 +4,6 @@ export const ImportFileConfig = {
   OFFSET_INDEX: 2,
 };
 export const regexSemester = /^(HK\d+)\s+(\d{4}-\d{4})$/;
-export const regexClassType = /^(TH|LT)$/;
+export const regexClassType = /^(HT1|HT2|LT)$/;
 
 

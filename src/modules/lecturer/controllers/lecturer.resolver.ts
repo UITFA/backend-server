@@ -1,14 +1,14 @@
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { ClassService } from '../class/class.service';
-import { PaginatedClass } from '../class/dto/PaginatedClass';
-import { QueryArgs } from '../../common/args/query.arg';
-import { Faculty } from '../faculty/entities/faculty.entity';
-import { FacultyService } from '../faculty/faculty.service';
-import { GroupedPoint } from '../point/dto/PaginatedGroupedPoint';
-import { PointService } from '../point/point.service';
-import { PaginatedLecturer } from './dto/PaginatedLecturer';
-import { Lecturer } from './entities/lecturer.entity';
-import { LecturerService } from './lecturer.service';
+import { ClassService } from '../../class/class.service';
+import { PaginatedClass } from '../../class/dto/PaginatedClass';
+import { QueryArgs } from '../../../common/args/query.arg';
+import { Faculty } from '../../faculty/entities/faculty.entity';
+import { FacultyService } from '../../faculty/faculty.service';
+import { GroupedPoint } from '../../point/dto/PaginatedGroupedPoint';
+import { PointService } from '../../point/point.service';
+import { PaginatedLecturer } from '../dto/PaginatedLecturer';
+import { Lecturer } from '../entities/lecturer.entity';
+import { LecturerService } from '../lecturer.service';
 
 @Resolver(() => Lecturer)
 export class LecturerResolver {

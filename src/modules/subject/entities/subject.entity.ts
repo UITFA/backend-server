@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Float, ObjectType } from '@nestjs/graphql';
 import { Class } from '../../class/entities/class.entity';
 import { Faculty } from '../../faculty/entities/faculty.entity';
 import {
@@ -29,8 +29,8 @@ export class Subject {
   @JoinColumn({ name: 'faculty_id' })
   faculty: Faculty;
 
-  @Column({ nullable: true })
-  @Field({ nullable: true })
+  @Column({ type: 'float', nullable: true })
+  @Field(() => Float, { nullable: true })
   total_point: number;
 
   @OneToMany(() => Class, (classItem) => classItem.subject)
