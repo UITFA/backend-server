@@ -67,7 +67,7 @@ export class FacultyService extends BaseService<Faculty> {
     });
     if (!faculty) {
       faculty = this.repo.create({ display_name: facultyName });
-      return this.repo.save(faculty);
+      this.repo.save(faculty);
     }
     return new FacultyDto(faculty);
   }

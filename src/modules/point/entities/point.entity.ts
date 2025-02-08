@@ -39,6 +39,6 @@ export class Point {
   criteria: Criteria;
 
   @Column({ nullable: true })
-  @Field()
+  @Field(() => String, { nullable: true })
   criteria_id: string;
 }

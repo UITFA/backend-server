@@ -7,20 +7,26 @@ import {
 import * as XLSX from 'xlsx';
 
 import { destinationFolders } from 'src/common/constants/destination-folders';
+import { Gender } from 'src/common/constants/gender';
 import {
   regexClassType,
   regexSemester,
 } from 'src/common/constants/import-file-config';
 import { ClassService } from 'src/modules/class/class.service';
-import { ClassRequestDto } from 'src/modules/class/dto/Class.request.dto';
-import { ClassResponseDto } from 'src/modules/class/dto/Class.response.dto';
+import { ClassRequestDto } from 'src/modules/class/dto/request/Class.request.dto';
+import { ClassResponseDto } from 'src/modules/class/dto/response/Class.response.dto';
 import { CommentService } from 'src/modules/comment/comment.service';
 import { InitCommentRequestDto } from 'src/modules/comment/dto/InitComment.request.dto';
+import { CriteriaService } from 'src/modules/criteria/criteria.service';
+import { UpdateCriteriaDto } from 'src/modules/criteria/dto/request/UpdateCriteriaDto';
+import { Criteria } from 'src/modules/criteria/entities/criteria.entity';
 import { AsbaService } from 'src/modules/external/asba.service';
 import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
 import { FacultyService } from 'src/modules/faculty/faculty.service';
 import { LecturerDto } from 'src/modules/lecturer/dto/lecturer.dto';
+import { UpdateLecturerDto } from 'src/modules/lecturer/dto/request/update-lecturer.dto';
 import { LecturerService } from 'src/modules/lecturer/lecturer.service';
+import { BulkPointDto } from 'src/modules/point/dto/request/BulkPointDto';
 import { PointService } from 'src/modules/point/point.service';
 import { SemesterDto } from 'src/modules/semester/dto/Semester.dto';
 import { SemesterRequestDto } from 'src/modules/semester/dto/Semester.request.dto';
@@ -32,9 +38,6 @@ import { Comment } from '../../comment/entities/comment.entity';
 import { PublicImageDto } from '../dtos/responses/CustomFile.dto';
 import { FileDto } from '../dtos/responses/File.dto';
 import { FileRepository } from '../repositories/file.repository';
-import { UpdateLecturerDto } from 'src/modules/lecturer/dto/request/update-lecturer.dto';
-import { Gender } from 'src/common/constants/gender';
-import * as dayjs from 'dayjs';
 
 @Injectable()
 export class FileService {
@@ -51,6 +54,7 @@ export class FileService {
     private readonly subjectService: SubjectService,
     private readonly classService: ClassService,
     public readonly asbaService: AsbaService,
+    public readonly criteriaService: CriteriaService,
   ) {
     this.logger = new Logger(FileService.name);
   }
@@ -426,7 +430,7 @@ export class FileService {
         throw new BadRequestException('No data in file');
       }
 
-      const isValid = this.validateLecturerFile(rawData);
+      const isValid = this.validateFile(rawData);
       if (!isValid) {
         throw new BadRequestException('Invalid file');
       }
@@ -438,7 +442,7 @@ export class FileService {
     }
   }
 
-  private validateLecturerFile(dataFile: any[]): boolean {
+  private validateFile(dataFile: any[]): boolean {
     if (!Array.isArray(dataFile) || dataFile.length === 0) {
       this.logger.error('Data file is empty or not an array');
       return false;
@@ -452,7 +456,6 @@ export class FileService {
     const columns = rawColumns.map((col) =>
       col !== null && col !== undefined ? String(col).trim().toLowerCase() : '',
     );
-
 
     const colIndexes = {
       mscb: columns.indexOf('mã gv'),
@@ -515,6 +518,278 @@ export class FileService {
       );
 
       await this.lecturerService.updatOrCreateLecturer(updateLecturerDto);
+    }
+  }
+
+  async importPoint(file: Express.Multer.File) {
+    const targetFolder: string = destinationFolders.lecturer;
+
+    const result = await this.uploadAndProcessPointFile(file, targetFolder);
+    return {
+      message: 'File imported successfully',
+      result,
+    };
+  }
+
+  async uploadAndProcessPointFile(
+    file: Express.Multer.File,
+    targetFolder: string,
+  ) {
+    const fileDto = new FileDto(
+      file.path,
+      file.encoding,
+      file.filename,
+      file.mimetype,
+      file.originalname,
+      file.size,
+      file.buffer,
+    );
+    const fileKey = await this.awsS3Service.uploadFile(fileDto, targetFolder);
+
+    const uploadedFile = await this.fileRepository.createFile(
+      new FileDto(fileKey, file.mimetype, file.originalname),
+    );
+
+    this.logger.log(`File uploaded: ${uploadedFile.key}`);
+
+    const fileBuffer = await this.awsS3Service.downloadFile(fileKey);
+
+    return this.processImportPointFile(fileBuffer, uploadedFile.originalName);
+  }
+
+  private async processImportPointFile(fileBuffer: Buffer, fileName: string) {
+    try {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      //Sheet 1 is Ti le danh gia cac lop >50%
+      const criteriaSheet = workbook.SheetNames[1];
+
+      //Sheet 3 is DTB cac lop >50%
+      const pointSheet = workbook.SheetNames[3];
+
+      const rawCriteriaData = XLSX.utils.sheet_to_json(
+        workbook.Sheets[criteriaSheet],
+        {
+          defval: null,
+        },
+      );
+
+      const rawPointData = XLSX.utils.sheet_to_json(
+        workbook.Sheets[pointSheet],
+        {
+          defval: null,
+        },
+      );
+
+      if (rawCriteriaData.length === 0 || rawPointData.length === 0) {
+        throw new BadRequestException('No data in file');
+      }
+
+      const isCriteriaValid = this.validateFile(rawCriteriaData);
+      const isPointValid = this.validateFile(rawPointData);
+
+      if (!isCriteriaValid || !isPointValid) {
+        throw new BadRequestException('Invalid file');
+      }
+
+      return this.processPointFile(rawCriteriaData, rawPointData);
+    } catch (error) {
+      this.logger.error(`Error when hadling ${fileName}: ${error.message}`);
+      throw new BadRequestException('Error when handle file');
+    }
+  }
+
+  private async processPointFile(
+    criteriaDataFile: any[],
+    pointDataFile: any[],
+  ) {
+    const firstCriteriaRow = criteriaDataFile[0];
+    const firstPointRow = pointDataFile[0];
+
+    const semesterCriteriaMatch = regexSemester.exec(
+      Object.keys(firstCriteriaRow)[0].trim(),
+    );
+    const semesterPointMatch = regexSemester.exec(
+      Object.keys(firstPointRow)[0].trim(),
+    );
+
+    const classTypeRow = Object.entries(pointDataFile[0]).find(
+      ([key, value]) => value !== null,
+    );
+
+    const classType = classTypeRow ? (classTypeRow[1] as string) : null;
+
+    if (!classType && !regexClassType.test(classType.trim())) {
+      throw new BadRequestException('Class type does not match');
+    }
+
+    if (!semesterCriteriaMatch || !semesterPointMatch) {
+      throw new BadRequestException('Semester information is invalid');
+    }
+
+    const [_, type, year] = semesterCriteriaMatch;
+    const semesterRequest = new SemesterRequestDto(type, year);
+    const semester =
+      await this.semesterService.findOrCreateSemesterWithoutUnique(
+        semesterRequest,
+      );
+
+    //Column Header
+    const criteriaHeaders = criteriaDataFile[1];
+    const pointHeaders = pointDataFile[1];
+    const pointCriteriaHeaders = pointDataFile[2];
+
+    const rawCriteriaColumns = Object.values(criteriaHeaders);
+    const rawPointColumns = Object.values(pointHeaders);
+    const rawPointCriteriaColumns = Object.values(pointCriteriaHeaders);
+
+    const criteriaColumns = rawCriteriaColumns.map((col) =>
+      col ? String(col).trim().toLowerCase() : rawCriteriaColumns.pop(),
+    );
+
+    const pointColumns = rawPointColumns.map((col) =>
+      col ? String(col).trim().toLowerCase() : rawPointColumns.pop(),
+    );
+
+    const pointCriteriaColumns = rawPointCriteriaColumns.map((col) =>
+      col ? String(col).trim().toLowerCase() : rawPointCriteriaColumns.pop(),
+    );
+
+    const criteriaColumnIndexes = {
+      index: criteriaColumns.indexOf('stt'),
+      criteria: criteriaColumns.indexOf('câu hỏi'),
+    };
+
+    const pointColumnIndexes = {
+      index: pointColumns.indexOf('stt'),
+      lecturerName: pointColumns.indexOf('giảng viên'),
+      facultyName: pointColumns.indexOf('khoa/bộ môn'),
+      className: pointColumns.indexOf('lớp'),
+      program: pointColumns.indexOf('chương trình'),
+      subject: pointColumns.indexOf('môn học'),
+      totalStudent: pointColumns.indexOf('sỉ số'),
+      participant: pointColumns.indexOf('tham gia'),
+      avgPoint: pointColumns.indexOf(
+        'M/4 (không tính các tiêu chí về trang thiết bị, CSVC)',
+      ),
+    };
+
+    if (
+      Object.values(criteriaColumnIndexes).some((index) => index === -1) ||
+      Object.values(pointColumnIndexes).some((index) => index === -1)
+    ) {
+      throw new BadRequestException('Missing required columns in the file');
+    }
+
+    const importedCriteria: Criteria[] = [];
+
+    for (let i = 2; i < criteriaDataFile.length; i++) {
+      const row = criteriaDataFile[i];
+      const rowData = Object.values(row);
+
+      const criteria = await this.updateCriteriaRecord(
+        rowData,
+        criteriaColumnIndexes,
+        semester,
+      );
+
+      importedCriteria.push(criteria);
+    }
+
+    for (let i = 3; i < pointDataFile.length; i++) {
+      const row = pointDataFile[i];
+      const rowData = Object.values(row);
+
+      await this.updatePointRecord(
+        rowData,
+        pointColumnIndexes,
+        semester,
+        importedCriteria,
+        pointCriteriaColumns,
+        classType,
+      );
+    }
+  }
+
+  private async updateCriteriaRecord(
+    rowData,
+    colIndexes,
+    semester: SemesterDto,
+  ): Promise<Criteria> {
+    const index = rowData[colIndexes.index];
+    const criteria = rowData[colIndexes.criteria];
+
+    if (!criteria) {
+      throw new BadRequestException('criteria is invalid');
+    }
+    const updateCriteriaDto = new UpdateCriteriaDto(criteria, index, semester);
+
+    return this.criteriaService.updateOrCreateCriteria(updateCriteriaDto);
+  }
+
+  private async updatePointRecord(
+    rowData,
+    colIndexes,
+    semester: SemesterDto,
+    importedCriteria: Criteria[],
+    pointCriteriaColumns,
+    classType,
+  ) {
+    const lecturerName = rowData[colIndexes.lecturerName];
+    const facultyName = rowData[colIndexes.facultyName];
+    const className = rowData[colIndexes.className];
+    const program = rowData[colIndexes.program];
+    const subjectName = rowData[colIndexes.subject];
+    const avgPoint = rowData[colIndexes.avgPoint];
+    const totalStudent = rowData[colIndexes.totalStudent];
+    const participant = rowData[colIndexes.totalStudent];
+
+    const faculty = await this.facultyService.findOrCreateFaculty(facultyName);
+    const subject = await this.subjectService.findOrCreateSubject(
+      subjectName,
+      faculty.faculty_id,
+    );
+
+    let lecturer: LecturerDto;
+
+    if (lecturerName) {
+      lecturer = await this.lecturerService.updateOrCreateLecturer(
+        lecturerName,
+        faculty?.faculty_id,
+        avgPoint,
+      );
+    }
+    let classDto: ClassResponseDto;
+
+    if (className) {
+      const classRequestDto = new ClassRequestDto(
+        className,
+        program,
+        semester?.id,
+        subject?.subject_id,
+        lecturer?.lecturer_id,
+        totalStudent,
+        participant,
+        classType,
+      );
+
+      classDto =
+        await this.classService.findOrCreateClassByNameAndSemesterId(
+          classRequestDto,
+        );
+    }
+
+    for (let i = 0; i < pointCriteriaColumns.length; i++) {
+      const pointValue = rowData[9 + i];
+
+      if (pointValue && importedCriteria[i]) {
+        const bulkPointDto = new BulkPointDto(
+          parseFloat(pointValue),
+          classDto.class_id,
+          importedCriteria[i].criteria_id,
+        );
+
+        await this.pointService.createPointFromImport(bulkPointDto);
+      }
     }
   }
 }

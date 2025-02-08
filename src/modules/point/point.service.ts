@@ -6,6 +6,7 @@ import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { Repository } from 'typeorm';
 import { Point } from './entities/point.entity';
+import { BulkPointDto } from './dto/request/BulkPointDto';
 
 @Injectable()
 export class PointService {
@@ -60,5 +61,17 @@ export class PointService {
       .getRawOne();
 
     return parseFloat(result.average) || 0;
+  }
+
+  async createPointFromImport(bulkPointDto: BulkPointDto): Promise<Point> {
+    const point = this.repo.create({
+      max_point: 4,
+      point: bulkPointDto.point,
+      class_id: bulkPointDto.classId,
+      criteria_id: bulkPointDto.criteriaId,
+    });
+
+    await this.repo.save(point);
+    return point;
   }
 }

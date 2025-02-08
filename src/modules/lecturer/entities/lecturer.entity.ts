@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { Class } from '../../class/entities/class.entity';
 import { Faculty } from '../../faculty/entities/faculty.entity';
 import {
@@ -75,7 +75,11 @@ export class Lecturer {
   // @Field(() => [Class], { nullable: true })
   classes?: Class[];
 
-  @Column({ nullable: true })
-  @Field({ nullable: true })
+  @Column('float', { nullable: true })
+  @Field(() => Float, { nullable: true, defaultValue: 0 })
   total_point?: number;
+
+  @Column({ nullable: true })
+  @Field(() => Int, { nullable: true, defaultValue: 0 })
+  point_count?: number;
 }

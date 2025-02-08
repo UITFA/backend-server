@@ -66,4 +66,22 @@ export class SemesterService {
     }
     throw new BadRequestException('Semester has existed');
   }
+
+  async findOrCreateSemesterWithoutUnique(semester: SemesterRequestDto) {
+    const semesterEntity = await this.repo.findOne({
+      where: {
+        year: semester.year,
+        type: semester.type,
+      },
+    });
+    if (!semesterEntity) {
+      const newSemester = this.repo.create({
+        display_name: `${semester.type} ${semester.year}`,
+        type: semester.type,
+        year: semester.year,
+      });
+      await this.repo.save(newSemester);
+    }
+    return new SemesterDto(semesterEntity);
+  }
 }

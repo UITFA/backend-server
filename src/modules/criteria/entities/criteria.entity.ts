@@ -7,14 +7,14 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @ObjectType()
 @Entity()
 export class Criteria {
   @Field()
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   criteria_id: string;
 
   @Field()

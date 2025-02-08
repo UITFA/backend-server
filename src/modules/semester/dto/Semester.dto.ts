@@ -1,14 +1,18 @@
-import { ObjectType } from '@nestjs/graphql';
+import { Field, ObjectType } from '@nestjs/graphql';
 import { Semester } from '../entities/semester.entity';
 
 @ObjectType()
 export class SemesterDto {
+  @Field(() => String, { nullable: true })
   id: string;
 
+  @Field(() => String, { nullable: true })
   displayName: string;
 
+  @Field(() => String, { nullable: true })
   type: string;
 
+  @Field(() => String, { nullable: true })
   year: string;
 
   constructor(entity?: Semester) {

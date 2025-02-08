@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Float, ObjectType } from '@nestjs/graphql';
 import { Gender } from 'src/common/constants/gender';
 import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
 
@@ -46,7 +46,7 @@ export class UpdateLecturerDto {
   @Field(() => String, { nullable: true })
   position?: string;
 
-  @Field(() => Number, { nullable: true })
+  @Field(() => Float, { nullable: true })
   totalPoint?: number;
 
   constructor(

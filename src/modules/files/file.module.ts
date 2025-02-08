@@ -18,6 +18,7 @@ import { LecturerModule } from '../lecturer/lecturer.module';
 import { ClassModule } from '../class/class.module';
 import { ExternalModule } from '../external/external.module';
 import { HttpModule } from '@nestjs/axios';
+import { CriteriaModule } from '../criteria/criteria.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { HttpModule } from '@nestjs/axios';
     forwardRef(() => PointModule),
     forwardRef(() => LecturerModule),
     forwardRef(() => ClassModule),
+    forwardRef(() => CriteriaModule),
     ExternalModule,
     HttpModule,
   ],

@@ -63,7 +63,6 @@ export class LecturerService extends BaseService<Lecturer> {
   }
 
   async findByName(name: string): Promise<Lecturer> | null {
-    console.log({ name });
     const result = await this.repo
       .createQueryBuilder('lecturer')
       .innerJoinAndSelect('lecturer.faculty', 'faculty')
@@ -123,5 +122,31 @@ export class LecturerService extends BaseService<Lecturer> {
     lecturer.faculty_id = updateLecturerDto.facultyId;
 
     await this.repo.save(lecturer);
+  }
+
+  async updateOrCreateLecturer(
+    display_name: string,
+    faculty_id: string,
+    avgPoint: string,
+  ) {
+    let lecturer = await this.repo.findOne({
+      where: { display_name, faculty_id },
+    });
+
+    if (!lecturer) {
+      lecturer = this.repo.create({
+        display_name,
+        faculty_id,
+        total_point: avgPoint ? parseFloat(avgPoint) : 0.0,
+        point_count: 1,
+      });
+    } else {
+      lecturer.point_count = lecturer.point_count + 1;
+      lecturer.total_point = avgPoint
+        ? lecturer.total_point + parseFloat(avgPoint)
+        : lecturer.total_point;
+    }
+    this.repo.save(lecturer);
+    return new LecturerDto(lecturer);
   }
 }
