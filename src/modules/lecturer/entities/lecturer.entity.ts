@@ -23,7 +23,7 @@ export class Lecturer {
   display_name: string;
 
   @Column({ nullable: true })
-  @Field(() => Int, { nullable: true })
+  @Field(() => String, { nullable: true })
   mscb?: string;
 
   @Column({ nullable: true })

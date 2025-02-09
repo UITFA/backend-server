@@ -522,7 +522,7 @@ export class FileService {
   }
 
   async importPoint(file: Express.Multer.File) {
-    const targetFolder: string = destinationFolders.lecturer;
+    const targetFolder: string = destinationFolders.point;
 
     const result = await this.uploadAndProcessPointFile(file, targetFolder);
     return {

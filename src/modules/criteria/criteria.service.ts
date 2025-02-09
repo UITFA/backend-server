@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { QueryArgs } from '../../common/args/query.arg';
 import { BaseService } from '../../common/services/BaseService';
 import { filterQuery } from '../../common/utils/filterQuery';
 import { paginateByQuery } from '../../common/utils/paginate';
-import { Repository } from 'typeorm';
-import { Criteria } from './entities/criteria.entity';
 import { Class } from '../class/entities/class.entity';
+import { UpdateCriteriaDto } from './dto/request/UpdateCriteriaDto';
+import { Criteria } from './entities/criteria.entity';
 
 @Injectable()
 export class CriteriaService extends BaseService<Criteria> {
@@ -22,7 +23,7 @@ export class CriteriaService extends BaseService<Criteria> {
   relations = { semester: true };
 
   async findAll({ filter, pagination, sort }: QueryArgs) {
-    return paginateByQuery(
+    const result = paginateByQuery(
       filterQuery<Criteria>(
         Criteria,
         this.repo
@@ -45,6 +46,8 @@ export class CriteriaService extends BaseService<Criteria> {
       filter,
       { isRaw: true },
     );
+
+    return result;
   }
 
   findOne(id: string): Promise<Criteria> {
@@ -65,5 +68,29 @@ export class CriteriaService extends BaseService<Criteria> {
       .getRawMany();
 
     return criteriaProperties;
+  }
+
+  async updateOrCreateCriteria(
+    updateCriteriaDto: UpdateCriteriaDto,
+  ): Promise<Criteria> {
+    let criteria = await this.repo.findOne({
+      where: {
+        display_name: updateCriteriaDto.displayName,
+        semester_id: updateCriteriaDto.semester?.id,
+      },
+    });
+    if (!criteria) {
+      criteria = this.repo.create({
+        index: updateCriteriaDto.index,
+        display_name: updateCriteriaDto.displayName,
+        semester_id: updateCriteriaDto.semester?.id,
+      });
+      await this.repo.save(criteria);
+    }
+    return criteria;
+  }
+
+  async findCriteriaByIndexAndSemester(index: number, semesterId: string) {
+    return this.repo.findOne({ where: { semester_id: semesterId, index } });
   }
 }
