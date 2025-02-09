@@ -8,8 +8,8 @@ export class CommentDto {
   @Field()
   content: string;
 
-  @Field()
-  type: string;
+  // @Field()
+  // type: string;
 
   @Field()
   aspect: string;
@@ -24,14 +24,14 @@ export class CommentDto {
 
   constructor(
     content?: string,
-    type?: string,
+    // type?: string,
     semesterId?: string,
     classId?: string,
     aspect?: string,
     sentiment?: string,
   ) {
     this.content = content;
-    this.type = type;
+    // this.type = type;
     this.aspect = aspect;
     this.sentiment = sentiment;
     this.semester_id = semesterId;

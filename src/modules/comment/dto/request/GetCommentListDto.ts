@@ -1,8 +1,9 @@
 import { ArgsType, Field, InputType } from '@nestjs/graphql';
+import { PageOptionsDto } from './PageOptionDto';
 
 @InputType()
 @ArgsType()
-export class FilterArgs {
+export class GetCommentListDto extends PageOptionsDto {
   @Field({ nullable: true })
   semester_id?: string;
 
@@ -34,8 +35,5 @@ export class FilterArgs {
   aspect?: string;
 
   @Field({ nullable: true })
-  mscb?: string;
-
-  @Field({ nullable: true })
-  ngach?: string;
+  sentiment?: string;
 }

@@ -45,7 +45,7 @@ type Class {
   display_name: String!
   lecturer: Lecturer!
   participating_student: Int!
-  points(class_id: String, class_type: String, criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, program: String, semester_id: String, subjects: [String!]): [GroupedPoint!]!
+  points(aspect: String, class_id: String, class_type: String = "LT", criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, mscb: String, ngach: String, program: String, semester_id: String, subjects: [String!]): [GroupedPoint!]!
   program: String!
   semester: Semester!
   subject: Subject!
@@ -53,12 +53,11 @@ type Class {
 }
 
 type Comment {
-  aspect: String!
+  aspect: String
   class: Class
   comment_id: String!
-  content: String!
-  sentiment: String!
-  type: String!
+  display_name: String
+  sentiment: String
 }
 
 type CommentQuantity {
@@ -84,8 +83,8 @@ type Criteria {
 }
 
 type CriteriaProperty {
-  class_type: String!
-  num: Int!
+  class_type: String
+  num: Int
 }
 
 """
@@ -99,9 +98,9 @@ type Faculty {
   full_name: String
   is_displayed: Boolean
   lecturers(filter: FilterArgs = {}, pagination: PaginationArgs = {page: 0, size: 10}, sort: SortArgs = {}): PaginatedLecturer
-  points(class_id: String, class_type: String, criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, program: String, semester_id: String, subjects: [String!]): PaginatedGroupedPoint
+  points(aspect: String, class_id: String, class_type: String = "LT", criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, mscb: String, ngach: String, program: String, semester_id: String, subjects: [String!]): PaginatedGroupedPoint
   subjects(filter: FilterArgs = {}, pagination: PaginationArgs = {page: 0, size: 10}, sort: SortArgs = {}): PaginatedSubject
-  total_point(class_id: String, class_type: String, criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, program: String, semester_id: String, subjects: [String!]): GroupedPoint
+  total_point(aspect: String, class_id: String, class_type: String = "LT", criteria_id: String, faculty_id: String, keyword: String = "", lecturer_id: String, mscb: String, ngach: String, program: String, semester_id: String, subjects: [String!]): GroupedPoint
 }
 
 type FacultyDto {
@@ -123,12 +122,15 @@ type FileEntity {
 }
 
 input FilterArgs {
+  aspect: String
   class_id: String
-  class_type: String
+  class_type: String = "LT"
   criteria_id: String
   faculty_id: String
   keyword: String = ""
   lecturer_id: String
+  mscb: String
+  ngach: String
   program: String
   semester_id: String
   subjects: [String!]
@@ -150,13 +152,14 @@ type Lecturer {
   email: String
   faculty: Faculty!
   faculty_id: String
-  gender: Boolean
+  gender: String
   learning: String
   learning_position: String
   lecturer_id: String!
-  mscb: Int
+  mscb: String
   ngach: String
   phone: String
+  point_count: Int
   points(filter: FilterArgs = {}, pagination: PaginationArgs = {page: 0, size: 10}, sort: SortArgs = {}): [GroupedPoint!]!
   position: String
   total_point: Float
@@ -169,13 +172,14 @@ type LecturerDto {
   email: String
   faculty: FacultyDto
   faculty_id: String
-  gender: Boolean
+  gender: String
   learning: String
   learning_position: String
   lecturer_id: String
   mscb: String
   ngach: String
   phone: String
+  point_count: Int
   position: String
   total_point: Float
   username: String
@@ -269,7 +273,7 @@ type Query {
   file(id: String!): FileEntity
 
   """List all points, group by a specific entity"""
-  groupedPoints(class_id: String, class_type: String, criteria_id: String, faculty_id: String, groupEntity: String = "Subject", keyword: String = "", lecturer_id: String, page: Int = 0, program: String, semester_id: String, size: Int = 10, subjects: [String!]): PaginatedGroupedPoint!
+  groupedPoints(aspect: String, class_id: String, class_type: String = "LT", criteria_id: String, faculty_id: String, groupEntity: String = "Subject", keyword: String = "", lecturer_id: String, mscb: String, ngach: String, page: Int = 0, program: String, semester_id: String, size: Int = 10, subjects: [String!]): PaginatedGroupedPoint!
 
   """View detail information of a specific lecturer"""
   lecturer(id: String!): Lecturer
@@ -296,6 +300,13 @@ enum Role {
 type Semester {
   display_name: String!
   semester_id: String!
+  type: String
+  year: String
+}
+
+type SemesterDto {
+  displayName: String
+  id: String
   type: String
   year: String
 }

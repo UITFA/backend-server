@@ -24,7 +24,6 @@ export class UserApiService {
     if (data.length == 0) {
       throw new UserNotFoundException(username);
     }
-    console.log(JSON.stringify(data));
 
     return { ...data[0], token };
   }

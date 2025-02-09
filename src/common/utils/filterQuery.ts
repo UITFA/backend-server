@@ -45,7 +45,7 @@ export function filterQuery<T>(
 
   if (filter.criteria_id)
     filteredQuery = filteredQuery.andWhere('Point.criteria_id = :criteria_id', {
-      criterid_id: filter.criteria_id,
+      criteria_id: filter.criteria_id,
     });
 
   if (filter.lecturer_id)

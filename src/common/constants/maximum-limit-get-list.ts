@@ -1,0 +1,1 @@
+export const MAXIMUM_LIMIT_GET_LIST = 100;

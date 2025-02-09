@@ -6,8 +6,8 @@ import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
 import { Class } from './entities/class.entity';
-import { ClassResponseDto } from './dto/Class.response.dto';
-import { ClassRequestDto } from './dto/Class.request.dto';
+import { ClassRequestDto } from './dto/request/Class.request.dto';
+import { ClassResponseDto } from './dto/response/Class.response.dto';
 
 @Injectable()
 export class ClassService extends BaseService<Class> {
@@ -58,16 +58,23 @@ export class ClassService extends BaseService<Class> {
       },
     });
     if (!classEntity) {
-      const newClass = this.repo.create({
+      const newClass: Class = this.repo.create({
         display_name: classRequest.displayName,
         semester_id: classRequest.semesterId,
         subject_id: classRequest.subjectId,
         lecturer_id: classRequest.lecturerId,
         program: classRequest.program,
+        total_student: classRequest.totalStudent,
+        participating_student: classRequest.participant,
+        class_type: classRequest.classType,
       });
       await this.repo.save(newClass);
       return new ClassResponseDto(newClass);
     }
     return new ClassResponseDto(classEntity);
+  }
+
+  public async findClassesBySubjectId(subjectId): Promise<ClassResponseDto[]> {
+    return this.repo.find({ where: { subject_id: subjectId } });
   }
 }

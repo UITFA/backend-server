@@ -7,12 +7,19 @@ import { paginateByQuery } from 'src/common/utils/paginate';
 import { Repository, UpdateResult } from 'typeorm';
 import { InitCommentRequestDto } from './dto/InitComment.request.dto';
 import { Comment } from './entities/comment.entity';
+import { GetCommentListDto } from './dto/request/GetCommentListDto';
 
 @Injectable()
 export class CommentService {
   constructor(@InjectRepository(Comment) private repo: Repository<Comment>) {}
 
-  findAll(filter: FilterArgs, paginationOptions: PaginationArgs, type: string) {
+  findAll(
+    filter: FilterArgs,
+    paginationOptions: PaginationArgs,
+    sentiment: string,
+  ) {
+    const aspect = filter.aspect;
+
     return paginateByQuery(
       filterQuery<Comment>(
         'Comment',
@@ -24,9 +31,21 @@ export class CommentService {
           .innerJoin('Class.semester', 'Semester')
           .innerJoin('Class.lecturer', 'Lecturer'),
         filter,
-      ).andWhere(type && type != 'all' ? 'Comment.type = :type' : 'true', {
-        type,
-      }),
+      )
+        .andWhere(
+          aspect && aspect != null ? 'Comment.aspect = :aspect' : 'true',
+          {
+            aspect,
+          },
+        )
+        .andWhere(
+          sentiment && sentiment != 'all'
+            ? 'Comment.sentiment = :sentiment'
+            : 'true',
+          {
+            sentiment,
+          },
+        ),
       paginationOptions,
       filter,
       {
@@ -37,9 +56,10 @@ export class CommentService {
     );
   }
 
-  async getQuantity(filter: FilterArgs, type: string) {
+  async getQuantity(filter: FilterArgs, sentiment: string) {
+    const aspect = filter.aspect;
     return {
-      type: type ?? 'all',
+      type: sentiment ?? 'all',
       quantity:
         (await filterQuery<Comment>(
           'Comment',
@@ -52,8 +72,16 @@ export class CommentService {
             .innerJoin('Class.lecturer', 'Lecturer'),
           filter,
         )
-          .andWhere(type && type != 'all' ? 'Comment.type = :type' : 'true', {
-            type,
+          .andWhere(
+            sentiment && sentiment != 'all'
+              ? 'Comment.sentitmemt = :sentiment'
+              : 'true',
+            {
+              sentiment,
+            },
+          )
+          .andWhere(aspect ? 'Comment.aspect = :aspect' : 'true', {
+            aspect,
           })
           .getCount()) || 0,
     };
@@ -79,7 +107,7 @@ export class CommentService {
 
   async createComment(commentDto: InitCommentRequestDto): Promise<Comment> {
     const comment = this.repo.create({
-      content: commentDto.content,
+      display_name: commentDto.content,
       semester_id: commentDto.semesterId,
       class_id: commentDto.classId,
     });
@@ -99,5 +127,113 @@ export class CommentService {
       },
     );
     return result;
+  }
+
+  async findCommentList(getCommentListDto: GetCommentListDto) {
+    const filter: FilterArgs = getCommentListDto;
+    const paginationOptions: PaginationArgs = getCommentListDto;
+    const sentiment: string = getCommentListDto?.sentiment;
+    const aspect: string = getCommentListDto?.aspect;
+
+    // const paginationOptions = getCommentListDto
+    //   ? { take: undefined, skip: undefined }
+    //   : {
+    //       take: getCommentListDto.size || 10,
+    //       skip: getCommentListDto.skip || 0,
+    //     };
+
+    return paginateByQuery(
+      filterQuery<Comment>(
+        'Comment',
+        this.repo
+          .createQueryBuilder()
+          .innerJoin('Comment.class', 'Class')
+          .innerJoin('Class.subject', 'Subject')
+          .innerJoin('Subject.faculty', 'Faculty')
+          .innerJoin('Class.semester', 'Semester')
+          .innerJoin('Class.lecturer', 'Lecturer'),
+        getCommentListDto,
+      )
+        .andWhere(
+          aspect && aspect != null ? 'Comment.aspect = :aspect' : 'true',
+          {
+            aspect,
+          },
+        )
+        .andWhere(
+          sentiment && sentiment != 'all'
+            ? 'Comment.sentiment = :sentiment'
+            : 'true',
+          {
+            sentiment,
+          },
+        ),
+      paginationOptions,
+      filter,
+      {
+        relations: {
+          class: true,
+          semester: true,
+        },
+      },
+    );
+    // const queryBuilder = this.repo
+    //   .createQueryBuilder('Comment')
+    //   .innerJoinAndSelect('Comment.class', 'Class')
+    //   .innerJoinAndSelect('Class.subject', 'Subject')
+    //   .innerJoinAndSelect('Subject.faculty', 'Faculty')
+    //   .innerJoinAndSelect('Class.semester', 'Semester')
+    //   .innerJoinAndSelect('Class.lecturer', 'Lecturer');
+
+    // if (aspect) {
+    //   queryBuilder.andWhere('Comment.aspect = :aspect', { aspect });
+    // }
+
+    // if (sentiment && sentiment !== 'all') {
+    //   queryBuilder.andWhere('Comment.sentiment = :sentiment', { sentiment });
+    // }
+
+    // if (getCommentListDto.semester_id) {
+    //   queryBuilder.andWhere('Semester.id = :semester_id', {
+    //     semester_id: getCommentListDto.semester_id,
+    //   });
+    // }
+
+    // if (getCommentListDto.faculty_id) {
+    //   queryBuilder.andWhere('Faculty.id = :faculty_id', {
+    //     faculty_id: getCommentListDto.faculty_id,
+    //   });
+    // }
+
+    // if (getCommentListDto.lecturer_id) {
+    //   queryBuilder.andWhere('Lecturer.id = :lecturer_id', {
+    //     lecturer_id: getCommentListDto.lecturer_id,
+    //   });
+    // }
+
+    // if (getCommentListDto.program) {
+    //   queryBuilder.andWhere('Class.program = :program', {
+    //     program: getCommentListDto.program,
+    //   });
+    // }
+
+    // if (getCommentListDto.keyword) {
+    //   queryBuilder.andWhere(
+    //     '(Comment.display_name LIKE :keyword OR Class.display_name LIKE :keyword OR Subject.display_name LIKE :keyword)',
+    //     { keyword: `%${getCommentListDto.keyword}%` },
+    //   );
+    // }
+
+    // if (getCommentListDto.subjects?.length) {
+    //   queryBuilder.andWhere('Subject.id IN (:...subjects)', {
+    //     subjects: getCommentListDto.subjects,
+    //   });
+    // }
+
+    // return paginateByQuery(queryBuilder, paginationOptions, filter, {
+    //   relations: {
+    //     class: true,
+    //   },
+    // });
   }
 }
