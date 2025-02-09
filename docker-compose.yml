@@ -5,21 +5,11 @@ services:
     env_file:
       - .env
     ports:
-      - 5432:5432
+      - 5434:5432
     volumes:
       - db:/var/lib/postgresql/data
     networks:
-      - aqa
-
-  # web:
-  #   build: .
-  #   restart: always
-  #   ports:
-  #     - 81:8080
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - aqa
+      - uitfa
 
   adminer:
     image: adminer:4.8.1
@@ -29,18 +19,29 @@ services:
     depends_on:
       - db
     networks:
-      - aqa
+      - uitfa
 
-# networks:
-#   postgresql:
-# volumes:
-#   postgresql-volume:
-#     external: true
+  model:
+    image: bthzang/uitfa-model:latest
+    restart: always
+    ports:
+      - 8002:8000
+    networks:
+      - uitfa
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - 6377:6379
+    networks:
+      - uitfa
+    command: ["redis-server", "--appendonly", "yes"]
 
 volumes:
   db:
     driver: local
 
 networks:
-  aqa:
+  uitfa:
     driver: bridge
