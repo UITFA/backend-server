@@ -125,6 +125,9 @@ importers:
       json-rules-engine:
         specifier: ^6.5.0
         version: 6.6.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       mime-types:
         specifier: ^2.1.35
         version: 2.1.35
