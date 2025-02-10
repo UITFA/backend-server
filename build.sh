@@ -8,8 +8,8 @@ echo "Start build backend...."
 current_branch=$(git branch --show-current)
 echo "Checking build branch with $current_branch ..."
 
-if [ "$2" != "true" ] && [ "$current_branch" != "fix/auth" ]; then
-  echo "Please checkout to fix/auth or ask bthZang for the permission to build backend"
+if [ "$2" != "true" ] && [ "$current_branch" != "staging" ]; then
+  echo "Please checkout to staging or ask bthZang for the permission to build backend"
   exit
 fi
 
@@ -32,8 +32,8 @@ if [ -f .env ]; then
 fi
 github_token=$GITHUB_TOKEN
 
-image=ghcr.io/bthzang/aqa-backend-nestjs/aqa-be:$version
-repo="bthzang/aqa-backend-nestjs"
+repo="bthzang/backend-server"
+image=ghcr.io/$repo/uitfa-be:$version
 
 echo "Checking version...."
 
