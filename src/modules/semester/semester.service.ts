@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SemesterDto } from './dto/Semester.dto';
@@ -53,6 +53,7 @@ export class SemesterService {
       where: {
         year: semester.year,
         type: semester.type,
+        classType: semester.classType,
       },
     });
     if (!semesterEntity) {
@@ -60,11 +61,12 @@ export class SemesterService {
         display_name: `${semester.type} ${semester.year}`,
         type: semester.type,
         year: semester.year,
+        classType: semester.classType,
       });
       await this.repo.save(newSemester);
-      return new SemesterDto(newSemester);
+      return newSemester;
     }
-    throw new BadRequestException('Semester has existed');
+    return semesterEntity;
   }
 
   async findOrCreateSemesterWithoutUnique(semester: SemesterRequestDto) {
@@ -72,6 +74,7 @@ export class SemesterService {
       where: {
         year: semester.year,
         type: semester.type,
+        classType: semester.classType,
       },
     });
     if (!semesterEntity) {
@@ -79,9 +82,10 @@ export class SemesterService {
         display_name: `${semester.type} ${semester.year}`,
         type: semester.type,
         year: semester.year,
+        classType: semester.classType,
       });
-      await this.repo.save(newSemester);
+      return this.repo.save(newSemester);
     }
-    return new SemesterDto(semesterEntity);
+    return semesterEntity;
   }
 }

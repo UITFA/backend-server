@@ -8,6 +8,7 @@ import { paginateByQuery } from '../../common/utils/paginate';
 import { Class } from '../class/entities/class.entity';
 import { UpdateCriteriaDto } from './dto/request/UpdateCriteriaDto';
 import { Criteria } from './entities/criteria.entity';
+import { Semester } from '../semester/entities/semester.entity';
 
 @Injectable()
 export class CriteriaService extends BaseService<Criteria> {
@@ -72,18 +73,21 @@ export class CriteriaService extends BaseService<Criteria> {
 
   async updateOrCreateCriteria(
     updateCriteriaDto: UpdateCriteriaDto,
+    semester: Semester,
   ): Promise<Criteria> {
     let criteria = await this.repo.findOne({
       where: {
         display_name: updateCriteriaDto.displayName,
-        semester_id: updateCriteriaDto.semester?.id,
+        semester,
+        semester_id: semester?.semester_id,
       },
     });
     if (!criteria) {
       criteria = this.repo.create({
         index: updateCriteriaDto.index,
         display_name: updateCriteriaDto.displayName,
-        semester_id: updateCriteriaDto.semester?.id,
+        semester: semester,
+        semester_id: semester?.semester_id,
       });
       await this.repo.save(criteria);
     }

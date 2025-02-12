@@ -5,6 +5,7 @@ import { BaseService } from 'src/common/services/BaseService';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
+import { Faculty } from '../faculty/entities/faculty.entity';
 import { FacultyService } from '../faculty/faculty.service';
 import { LecturerDto } from './dto/lecturer.dto';
 import { UpdateLecturerDto } from './dto/request/update-lecturer.dto';
@@ -85,20 +86,29 @@ export class LecturerService extends BaseService<Lecturer> {
     return new LecturerDto(lecturer);
   }
 
-  async findOrCreateLecturer(display_name: string, faculty_id: string) {
+  async findOrCreateLecturer(display_name: string, faculty: Faculty) {
     let lecturer = await this.repo.findOne({
-      where: { display_name, faculty_id },
+      where: { display_name },
     });
     if (!lecturer) {
-      lecturer = this.repo.create({ display_name, faculty_id });
-      this.repo.save(lecturer);
+      lecturer = this.repo.create({
+        display_name,
+        faculty,
+        faculty_id: faculty?.faculty_id,
+      });
+      await this.repo.save(lecturer);
     }
-    return new LecturerDto(lecturer);
+    return lecturer;
   }
 
-  async updatOrCreateLecturer(updateLecturerDto: UpdateLecturerDto) {
+  async updatOrCreateLecturer(
+    updateLecturerDto: UpdateLecturerDto,
+    faculty: Faculty,
+  ) {
     let lecturer = await this.repo.findOne({
-      where: { display_name: updateLecturerDto.displayName },
+      where: {
+        display_name: updateLecturerDto.displayName,
+      },
     });
 
     if (!lecturer) {
@@ -119,24 +129,28 @@ export class LecturerService extends BaseService<Lecturer> {
     lecturer.total_point = updateLecturerDto.totalPoint;
     lecturer.username = updateLecturerDto.username;
     lecturer.position = updateLecturerDto.position;
+    lecturer.faculty = faculty;
     lecturer.faculty_id = updateLecturerDto.facultyId;
 
     await this.repo.save(lecturer);
+    return lecturer;
   }
 
   async updateOrCreateLecturer(
     display_name: string,
-    faculty_id: string,
+    faculty: Faculty,
     avgPoint: string,
   ) {
     let lecturer = await this.repo.findOne({
-      where: { display_name, faculty_id },
+      where: { display_name },
     });
+
 
     if (!lecturer) {
       lecturer = this.repo.create({
         display_name,
-        faculty_id,
+        faculty,
+        faculty_id: faculty?.faculty_id,
         total_point: avgPoint ? parseFloat(avgPoint) : 0.0,
         point_count: 1,
       });
@@ -146,7 +160,7 @@ export class LecturerService extends BaseService<Lecturer> {
         ? lecturer.total_point + parseFloat(avgPoint)
         : lecturer.total_point;
     }
-    this.repo.save(lecturer);
-    return new LecturerDto(lecturer);
+    await this.repo.save(lecturer);
+    return lecturer;
   }
 }
