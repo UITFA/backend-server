@@ -8,6 +8,8 @@ import { FindOptionsRelations, Repository } from 'typeorm';
 import { Class } from './entities/class.entity';
 import { ClassRequestDto } from './dto/request/Class.request.dto';
 import { ClassResponseDto } from './dto/response/Class.response.dto';
+import { Lecturer } from '../lecturer/entities/lecturer.entity';
+import { Semester } from '../semester/entities/semester.entity';
 
 @Injectable()
 export class ClassService extends BaseService<Class> {
@@ -49,19 +51,25 @@ export class ClassService extends BaseService<Class> {
     });
   }
 
-  async findOrCreateClassByNameAndSemesterId(classRequest: ClassRequestDto) {
+  async findOrCreateClassByNameAndSemesterId(
+    classRequest: ClassRequestDto,
+    lecturer: Lecturer,
+    semester: Semester,
+  ) {
     const classEntity = await this.repo.findOne({
       where: {
         display_name: classRequest.displayName,
-        semester_id: classRequest.semesterId,
+        semester_id: semester?.semester_id,
         subject_id: classRequest.subjectId,
       },
     });
     if (!classEntity) {
       const newClass: Class = this.repo.create({
         display_name: classRequest.displayName,
-        semester_id: classRequest.semesterId,
+        semester,
+        semester_id: semester?.semester_id,
         subject_id: classRequest.subjectId,
+        lecturer,
         lecturer_id: classRequest.lecturerId,
         program: classRequest.program,
         total_student: classRequest.totalStudent,

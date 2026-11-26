@@ -298,6 +298,7 @@ enum Role {
 }
 
 type Semester {
+  classType: String
   display_name: String!
   semester_id: String!
   type: String

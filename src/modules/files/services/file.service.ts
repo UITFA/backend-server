@@ -21,15 +21,15 @@ import { CriteriaService } from 'src/modules/criteria/criteria.service';
 import { UpdateCriteriaDto } from 'src/modules/criteria/dto/request/UpdateCriteriaDto';
 import { Criteria } from 'src/modules/criteria/entities/criteria.entity';
 import { AsbaService } from 'src/modules/external/asba.service';
-import { FacultyDto } from 'src/modules/faculty/dto/faculty.dto';
+import { Faculty } from 'src/modules/faculty/entities/faculty.entity';
 import { FacultyService } from 'src/modules/faculty/faculty.service';
-import { LecturerDto } from 'src/modules/lecturer/dto/lecturer.dto';
 import { UpdateLecturerDto } from 'src/modules/lecturer/dto/request/update-lecturer.dto';
+import { Lecturer } from 'src/modules/lecturer/entities/lecturer.entity';
 import { LecturerService } from 'src/modules/lecturer/lecturer.service';
 import { BulkPointDto } from 'src/modules/point/dto/request/BulkPointDto';
 import { PointService } from 'src/modules/point/point.service';
-import { SemesterDto } from 'src/modules/semester/dto/Semester.dto';
 import { SemesterRequestDto } from 'src/modules/semester/dto/Semester.request.dto';
+import { Semester } from 'src/modules/semester/entities/semester.entity';
 import { SemesterService } from 'src/modules/semester/semester.service';
 import { SubjectResponseDto } from 'src/modules/subject/dto/Subject.response.dto';
 import { SubjectService } from 'src/modules/subject/subject.service';
@@ -170,7 +170,7 @@ export class FileService {
   private async updateCommentRecord(
     rowData,
     colIndexes,
-    semester: SemesterDto,
+    semester: Semester,
     classType: string,
   ): Promise<Comment[]> {
     const lecturerName = rowData[colIndexes.name] as string;
@@ -183,7 +183,7 @@ export class FileService {
     const participant = rowData[colIndexes.participant];
     const loop = rowData[colIndexes.loop];
 
-    let faculty: FacultyDto;
+    let faculty: Faculty;
     if (facultyName) {
       faculty = await this.facultyService.findOrCreateFaculty(facultyName);
     }
@@ -192,15 +192,15 @@ export class FileService {
     if (subject) {
       subjectDto = await this.subjectService.findOrCreateSubject(
         subject,
-        faculty?.faculty_id,
+        faculty,
       );
     }
 
-    let lecturer: LecturerDto;
+    let lecturer: Lecturer;
     if (lecturerName) {
       lecturer = await this.lecturerService.findOrCreateLecturer(
         lecturerName,
-        faculty?.faculty_id,
+        faculty,
       );
     }
     let classDto: ClassResponseDto;
@@ -209,7 +209,6 @@ export class FileService {
       const classRequestDto = new ClassRequestDto(
         className,
         program,
-        semester?.id,
         subjectDto?.subject_id,
         lecturer?.lecturer_id,
         totalStudent,
@@ -217,10 +216,11 @@ export class FileService {
         classType,
       );
 
-      classDto =
-        await this.classService.findOrCreateClassByNameAndSemesterId(
-          classRequestDto,
-        );
+      classDto = await this.classService.findOrCreateClassByNameAndSemesterId(
+        classRequestDto,
+        lecturer,
+        semester,
+      );
     }
 
     if (point) {
@@ -238,7 +238,7 @@ export class FileService {
           const initCommentRequestDto = new InitCommentRequestDto(
             positiveFeedback,
             classDto?.class_id,
-            semester?.id,
+            semester?.semester_id,
           );
           const newComment = await this.commentService.createComment(
             initCommentRequestDto,
@@ -253,7 +253,7 @@ export class FileService {
           const initCommentRequestDto = new InitCommentRequestDto(
             negativeFeedback,
             classDto?.class_id,
-            semester?.id,
+            semester?.semester_id,
           );
           const newComment = await this.commentService.createComment(
             initCommentRequestDto,
@@ -495,7 +495,7 @@ export class FileService {
     const ngach = rowData[colIndexes.ngach];
     const position = rowData[colIndexes.position];
 
-    let faculty: FacultyDto;
+    let faculty: Faculty;
     if (facultyName) {
       faculty = await this.facultyService.findOrCreateFaculty(facultyName);
     }
@@ -517,7 +517,10 @@ export class FileService {
         position,
       );
 
-      await this.lecturerService.updatOrCreateLecturer(updateLecturerDto);
+      await this.lecturerService.updatOrCreateLecturer(
+        updateLecturerDto,
+        faculty,
+      );
     }
   }
 
@@ -627,11 +630,9 @@ export class FileService {
     }
 
     const [_, type, year] = semesterCriteriaMatch;
-    const semesterRequest = new SemesterRequestDto(type, year);
+    const semesterRequest = new SemesterRequestDto(type, year, classType);
     const semester =
-      await this.semesterService.findOrCreateSemesterWithoutUnique(
-        semesterRequest,
-      );
+      await this.semesterService.findOrCreateSemester(semesterRequest);
 
     //Column Header
     const criteriaHeaders = criteriaDataFile[1];
@@ -658,7 +659,6 @@ export class FileService {
       index: criteriaColumns.indexOf('stt'),
       criteria: criteriaColumns.indexOf('câu hỏi'),
     };
-
     const pointColumnIndexes = {
       index: pointColumns.indexOf('stt'),
       lecturerName: pointColumns.indexOf('giảng viên'),
@@ -668,9 +668,15 @@ export class FileService {
       subject: pointColumns.indexOf('môn học'),
       totalStudent: pointColumns.indexOf('sỉ số'),
       participant: pointColumns.indexOf('tham gia'),
-      avgPoint: pointColumns.indexOf(
-        'M/4 (không tính các tiêu chí về trang thiết bị, CSVC)',
-      ),
+      avgPoint:
+        [
+          'M/4 (không tính các tiêu chí về trang thiết bị, CSVC)',
+          'M/5 (không tính các tiêu chí về trang thiết bị, CSVC)',
+          'm/4 (không tính các tiêu chí về trang thiết bị, csvc)',
+          'm/5 (không tính các tiêu chí về trang thiết bị, csvc)',
+        ]
+          .map((label) => pointColumns.indexOf(label))
+          .find((index) => index !== -1) || -1,
     };
 
     if (
@@ -681,7 +687,6 @@ export class FileService {
     }
 
     const importedCriteria: Criteria[] = [];
-
     for (let i = 2; i < criteriaDataFile.length; i++) {
       const row = criteriaDataFile[i];
       const rowData = Object.values(row);
@@ -713,7 +718,7 @@ export class FileService {
   private async updateCriteriaRecord(
     rowData,
     colIndexes,
-    semester: SemesterDto,
+    semester: Semester,
   ): Promise<Criteria> {
     const index = rowData[colIndexes.index];
     const criteria = rowData[colIndexes.criteria];
@@ -721,15 +726,18 @@ export class FileService {
     if (!criteria) {
       throw new BadRequestException('criteria is invalid');
     }
-    const updateCriteriaDto = new UpdateCriteriaDto(criteria, index, semester);
+    const updateCriteriaDto = new UpdateCriteriaDto(criteria, index);
 
-    return this.criteriaService.updateOrCreateCriteria(updateCriteriaDto);
+    return this.criteriaService.updateOrCreateCriteria(
+      updateCriteriaDto,
+      semester,
+    );
   }
 
   private async updatePointRecord(
     rowData,
     colIndexes,
-    semester: SemesterDto,
+    semester: Semester,
     importedCriteria: Criteria[],
     pointCriteriaColumns,
     classType,
@@ -746,15 +754,15 @@ export class FileService {
     const faculty = await this.facultyService.findOrCreateFaculty(facultyName);
     const subject = await this.subjectService.findOrCreateSubject(
       subjectName,
-      faculty.faculty_id,
+      faculty,
     );
 
-    let lecturer: LecturerDto;
+    let lecturer: Lecturer;
 
     if (lecturerName) {
       lecturer = await this.lecturerService.updateOrCreateLecturer(
         lecturerName,
-        faculty?.faculty_id,
+        faculty,
         avgPoint,
       );
     }
@@ -764,7 +772,6 @@ export class FileService {
       const classRequestDto = new ClassRequestDto(
         className,
         program,
-        semester?.id,
         subject?.subject_id,
         lecturer?.lecturer_id,
         totalStudent,
@@ -772,10 +779,11 @@ export class FileService {
         classType,
       );
 
-      classDto =
-        await this.classService.findOrCreateClassByNameAndSemesterId(
-          classRequestDto,
-        );
+      classDto = await this.classService.findOrCreateClassByNameAndSemesterId(
+        classRequestDto,
+        lecturer,
+        semester,
+      );
     }
 
     for (let i = 0; i < pointCriteriaColumns.length; i++) {

@@ -29,12 +29,12 @@ export class ClassRequestDto {
   constructor(
     displayName?: string,
     program?: string,
-    semesterId?: string,
     subjectId?: string,
     lecturerId?: string,
     totalStudent?: string,
     participant?: string,
     classType?: string,
+    semesterId?: string,
   ) {
     this.displayName = displayName;
     this.semesterId = semesterId;

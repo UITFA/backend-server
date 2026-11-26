@@ -7,7 +7,6 @@ import { BaseService } from 'src/common/services/BaseService';
 import { filterQuery } from 'src/common/utils/filterQuery';
 import { paginateByQuery } from 'src/common/utils/paginate';
 import { FindOptionsRelations, Repository } from 'typeorm';
-import { FacultyDto } from './dto/faculty.dto';
 import { Faculty } from './entities/faculty.entity';
 
 @Injectable()
@@ -66,9 +65,12 @@ export class FacultyService extends BaseService<Faculty> {
       where: { display_name: facultyName },
     });
     if (!faculty) {
-      faculty = this.repo.create({ display_name: facultyName });
-      this.repo.save(faculty);
+      faculty = this.repo.create({
+        display_name: facultyName,
+        full_name: facultyName,
+      });
+      await this.repo.save(faculty);
     }
-    return new FacultyDto(faculty);
+    return faculty;
   }
 }
