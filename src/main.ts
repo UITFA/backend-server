@@ -15,9 +15,9 @@ import { SharedModule } from 'src/shared/shared.module';
 import { AppModule } from './app.module';
 import { createBullBoard } from 'bull-board';
 import { ExpressAdapter as BullExpressAdapter } from '@bull-board/express';
-import { BullAdapter } from 'bull-board/bullAdapter';
+import { BullMQAdapter } from 'bull-board/bullMQAdapter';
 import { getQueueToken } from '@nestjs/bull';
-
+import { Queue } from 'bullmq';
 
 export async function bootstrap(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(
@@ -35,21 +35,20 @@ export async function bootstrap(): Promise<NestExpressApplication> {
 
   const port = configService.appConfig.port;
 
-  const serverAdapter = new ExpressAdapter();
-  // serverAdapter.setBaseViewsDir .setBasePath('/admin/queues'); 
+  const serverAdapter = new BullExpressAdapter();
+  serverAdapter.setBasePath('/admin/queues');
 
-  // const { setQueues } = createBullBoard({
-  //   queues: [], 
-  //   serverAdapter, 
-  // });
+  const fileQueue = app.get<Queue>(getQueueToken('file-queue'));
 
-  // setQueues([new BullAdapter(importQueue)]);
+  const { router, setQueues } = createBullBoard([new BullMQAdapter(fileQueue)]);
 
-  // app.use('/admin/queues', serverAdapter.getRouter());
-  
+  app.use('/admin/queues', router);
+
   await app.listen(port);
 
   console.info(`server running on ${await app.getUrl()}`);
+  console.info(`Bull Board running on ${await app.getUrl()}/admin/queues`);
+
 
   return app;
 }

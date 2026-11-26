@@ -30,7 +30,7 @@ export class FileController {
       const filePath = join(__dirname, '../../../uploads', file.originalname);
       writeFileSync(filePath, file.buffer);
 
-      console.log(`📥 File saved at: ${filePath}`);
+      console.log(`File saved at: ${filePath}`);
 
       await this.fileQueue.add('import-lecturers', {
         filePath, 
