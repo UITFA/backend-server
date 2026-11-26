@@ -3,7 +3,6 @@ import * as path from 'path';
 
 import {
   GetObjectCommand,
-  PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3';
 import {
@@ -14,6 +13,7 @@ import {
 } from '@nestjs/common';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 
+import { Upload } from '@aws-sdk/lib-storage';
 import { FileDto } from 'src/modules/files/dtos/responses/File.dto';
 import { IStream } from '../../interfaces';
 import { ApiConfigService } from './api-config.service';
@@ -121,22 +121,32 @@ export class S3Service {
 
       return buffer;
     } catch (error) {
-      throw new BadRequestException(`Error when downloading file from S3: ${error.message}`);
+      throw new BadRequestException(
+        `Error when downloading file from S3: ${error.message}`,
+      );
     }
   }
 
   async uploadFile(file: FileDto, targetFolder: string): Promise<string> {
-    const key = `${targetFolder}/${file.filename}`;
+    const key = `${targetFolder}/${file?.filename}`;
 
     try {
-      await this.s3Client.send(
-        new PutObjectCommand({
+      const fileBuffer = Buffer.isBuffer(file.buffer)
+        ? file.buffer
+        : Buffer.from(file.buffer);
+
+      const upload = new Upload({
+        client: this.s3Client,
+        params: {
           Bucket: process.env.AWS_S3_BUCKET_NAME,
           Key: key,
-          Body: file.buffer,
+          Body: fileBuffer,
           ContentType: file.mimetype,
-        }),
-      );
+        },
+      });
+
+      const result = await upload.done();
+      console.log('Upload success:', result);
 
       return key;
     } catch (error) {
@@ -145,7 +155,7 @@ export class S3Service {
     }
   }
 }
- 
+
 const streamToBuffer = (stream: any): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     const chunks: any[] = [];

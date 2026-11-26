@@ -19,6 +19,8 @@ import { ClassModule } from '../class/class.module';
 import { ExternalModule } from '../external/external.module';
 import { HttpModule } from '@nestjs/axios';
 import { CriteriaModule } from '../criteria/criteria.module';
+import { BullModule } from '@nestjs/bull';
+import { FileProcessor } from './processors/file.processor';
 
 @Module({
   imports: [
@@ -34,6 +36,16 @@ import { CriteriaModule } from '../criteria/criteria.module';
     forwardRef(() => CriteriaModule),
     ExternalModule,
     HttpModule,
+    BullModule.forRoot({
+      redis: {
+        host: '127.0.0.1',
+        port: 6379,
+        maxRetriesPerRequest: null,
+      },
+    }),
+    BullModule.registerQueue({
+      name: 'file-queue',
+    }),
   ],
   controllers: [FileController],
   exports: [],
@@ -43,6 +55,7 @@ import { CriteriaModule } from '../criteria/criteria.module';
     S3Service,
     FileRepository,
     GeneratorService,
+    FileProcessor,
   ],
 })
 export class FileModule {}

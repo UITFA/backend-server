@@ -4,15 +4,20 @@ import {
   HttpStatus,
   Post,
   UploadedFile,
-  UseInterceptors
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileService } from '../services/file.service';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bullmq';
+import { join } from 'path';
+import { writeFileSync } from 'fs';
 
 @Controller('files')
 export class FileController {
   constructor(
     private readonly fileService: FileService,
+    @InjectQueue('file-queue') private fileQueue: Queue,
   ) {}
 
   @Post('comments')
@@ -22,7 +27,19 @@ export class FileController {
       throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
     }
     try {
-      return await this.fileService.importAndPredict(file);
+      const filePath = join(__dirname, '../../../uploads', file.originalname);
+      writeFileSync(filePath, file.buffer);
+
+      console.log(`📥 File saved at: ${filePath}`);
+
+      await this.fileQueue.add('import-lecturers', {
+        filePath, 
+        filename: file.originalname,
+        mimetype: file.mimetype,
+      });
+
+      return { message: 'File processing started in background.' };
+
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -35,7 +52,13 @@ export class FileController {
       throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
     }
     try {
-      return await this.fileService.importLecturer(file);
+      await this.fileQueue.add('import-lecturers', {
+        file,
+        filename: file.originalname,
+      });
+
+      return { message: 'File processing started in background.' };
+
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -48,7 +71,13 @@ export class FileController {
       throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
     }
     try {
-      return await this.fileService.importPoint(file);
+      await this.fileQueue.add('import-points', {
+        file,
+        filename: file.originalname,
+      });
+
+      return { message: 'File processing started in background.' };
+
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

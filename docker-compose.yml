@@ -33,10 +33,10 @@ services:
     image: redis:latest
     restart: always
     ports:
-      - 6377:6379
+      - 6379:6379
     networks:
       - uitfa
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
 
 volumes:
   db:
